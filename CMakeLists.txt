@@ -1,0 +1,8 @@
+cmake_minimum_required(VERSION 3.27)
+project(utempl)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+find_package(fmt REQUIRED)
+set(CMAKE_CXX_STANDART 23)
+add_library(utempl INTERFACE)
+target_link_libraries(utempl INTERFACE fmt::fmt-header-only)
+target_include_directories(utempl INTERFACE include)
