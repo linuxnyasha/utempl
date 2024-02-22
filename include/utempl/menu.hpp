@@ -6,6 +6,22 @@
 #include <fmt/format.h>
 #include <fmt/compile.h>
 
+
+namespace utempl::utils {
+  template <std::size_t>
+  struct ConstexprString;
+};
+
+template <std::size_t Size>
+struct fmt::formatter<utempl::utils::ConstexprString<Size>> : public fmt::formatter<std::string_view> {
+  constexpr auto parse(format_parse_context& ctx) const {
+    return ctx.begin();
+  };
+  inline constexpr auto format(const utempl::utils::ConstexprString<Size>& str, auto& ctx) const {
+    return fmt::formatter<std::string_view>::format({str.data.begin()}, ctx);
+  };
+};
+
 namespace utempl {
 
 namespace utils {
@@ -26,11 +42,8 @@ struct ConstexprString {
   inline constexpr auto size() const {
     return Size == 0 ? 0 : Size - 1;
   };
-  inline constexpr operator std::string_view() const {
+  inline constexpr explicit operator std::string_view() const {
     return {this->data.begin()};
-  };
-  inline constexpr operator std::string() const {
-    return static_cast<std::string>(static_cast<std::string_view>(*this));
   };
   inline constexpr bool operator==(std::string_view other) const {
     return static_cast<std::string_view>(*this) == other;
@@ -296,15 +309,17 @@ inline auto Run(Menu&& menu) {
   constexpr auto messagesCount = utils::kTupleSize<std::remove_cv_t<decltype(Cleared::kMessages)>>;
   [&]<auto... Is, auto messages = Cleared::kMessages>(std::index_sequence<Is...>){
     constexpr auto message = ([&]<auto I>(utils::Wrapper<I>){
-      static constexpr auto message = get<I>(messages);
+      constexpr auto message = get<I>(messages);
       constexpr std::size_t s = maxSize - (message.need ? message.need->size() : utils::countDigits(I));
-      static constexpr auto str = utils::createStringWith<s>(' ');
-      constexpr std::string_view str1{[&] {
-          static constexpr auto st = utils::toString<I>();
-          return message.need ? std::string_view(*message.need) : std::string_view(st);
-        }()}
-        ,str2{message.message}
-        ,str3{str};
+      constexpr auto str3 = utils::createStringWith<s>(' ');
+      constexpr auto str2 = message.message; 
+      constexpr auto str1 = [&] {
+        if constexpr(message.need) {
+          return *message.need;
+        } else {
+          return utils::toString<I>();            
+        };
+      }();
       // + 1 - NULL Terminator
       constexpr auto size = fmt::formatted_size(FMT_COMPILE(fmt.data.begin())
         ,str1
