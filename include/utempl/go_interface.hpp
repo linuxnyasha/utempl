@@ -68,9 +68,22 @@ struct GoInterface : Value {
     Value(impl::Transform<Value>(Transformer{}, std::forward<T>(value))) {};
   inline constexpr auto operator=(const GoInterface&) -> GoInterface& = default;
   inline constexpr auto operator=(GoInterface&&) -> GoInterface& = default;
-  inline constexpr auto operator==(const GoInterface& other) const -> bool
-        requires requires {static_cast<const Value&>(*this) == static_cast<const Value&>(other);} {
-    return static_cast<const Value&>(*this) == static_cast<const Value&>(other);
+  inline constexpr auto operator==(const Value& other) const -> bool 
+      requires requires(const Value& a){a == a;} {
+    return static_cast<const Value&>(*this) == other;
+  };
+  inline constexpr auto operator==(const GoInterface& other) const -> bool {
+    return *this == static_cast<const Value&>(other);
+  };
+  template <typename T>
+  inline constexpr auto operator==(T&& other) const -> bool {
+    return [&]<auto... Is>(std::index_sequence<Is...>){
+      using Type = std::remove_cvref_t<T>;
+      Transformer transformer;
+      // + 1 - NULL Terminator
+      return ((boost::pfr::get<Is>(static_cast<const Value&>(*this)) == 
+        transformer(impl::TryGet<ConstexprString<boost::pfr::get_name<Is, Type>().size() + 1>{boost::pfr::get_name<Is, Type>().begin()}>(other))) && ...);
+    }(std::make_index_sequence<boost::pfr::tuple_size_v<Value>>());
   };
 };
 
