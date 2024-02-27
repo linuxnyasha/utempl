@@ -4,7 +4,7 @@
 namespace utempl {
 
 TEST(Overloaded, Basic) {
-  constexpr auto f = utempl::Overloaded([](int){
+  constexpr auto f = Overloaded([](int){
     return 1;
   }, [](auto&&){
     return 2;

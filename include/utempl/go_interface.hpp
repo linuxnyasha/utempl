@@ -42,7 +42,7 @@ inline constexpr auto Transform(Transformer&& transformer, From&& from) {
   }(std::make_index_sequence<boost::pfr::tuple_size_v<To>>());
 };
 
-} // impl
+} // namespace impl
 
 struct DefaultFieldTransformer {
   inline constexpr auto operator()(auto&& arg) -> auto&& {

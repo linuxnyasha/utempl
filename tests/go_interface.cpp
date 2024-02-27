@@ -1,6 +1,8 @@
 #include <gtest/gtest.h>
 #include <utempl/go_interface.hpp>
 
+namespace utempl {
+
 struct SomeInterface {
   int field;
 };
@@ -17,14 +19,16 @@ struct SomeStruct2 {
 };
 
 TEST(GoInterface, Basic) {
-  utempl::GoInterface<SomeInterface> obj(SomeStruct{1});
+  GoInterface<SomeInterface> obj(SomeStruct{1});
   EXPECT_EQ(obj.field, 1);
 };
 
 TEST(GoInterface, Equal) {
-  utempl::GoInterface<SomeInterface> obj(SomeStruct{1});
-  EXPECT_EQ(obj, utempl::GoInterface{SomeInterface{1}});
+  GoInterface<SomeInterface> obj(SomeStruct{1});
+  EXPECT_EQ(obj, GoInterface{SomeInterface{1}});
   EXPECT_EQ(obj, SomeInterface{1});
   EXPECT_NE(obj, SomeStruct{1});
   EXPECT_EQ(obj, SomeStruct2{1});
 };
+} // namespace utempl
+
