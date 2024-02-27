@@ -85,6 +85,11 @@ struct GoInterface : Value {
         transformer(impl::TryGet<ConstexprString<boost::pfr::get_name<Is, Type>().size() + 1>{boost::pfr::get_name<Is, Type>().begin()}>(other))) && ...);
     }(std::make_index_sequence<boost::pfr::tuple_size_v<Value>>());
   };
+  template <typename T>
+  inline constexpr auto operator==(T&& other) const -> bool 
+        requires (requires(const Value& value){value == other;})  {
+    return static_cast<const Value&>(*this) == other;
+  };
 };
 
 } // namespace utempl
