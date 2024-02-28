@@ -64,17 +64,27 @@ struct Tuple : public impl::TupleHelper<std::index_sequence_for<Ts...>, Ts...> {
     impl::TupleHelper<std::index_sequence_for<Ts...>, Ts...>(std::move(args)...) {};
   inline constexpr Tuple(const Tuple&) = default;
   inline constexpr Tuple(Tuple&&) = default;
-  inline constexpr bool operator==(const Tuple&) const = default;
+  
+  template <typename... TTs>
+  inline constexpr bool operator==(const Tuple<TTs...>& other) const 
+        requires (TypeList<Ts...>{} == TypeList<TTs...>{}) {
+    return [&]<auto... Is>(std::index_sequence<Is...>){
+      return ((Get<Is>(*this) == Get<Is>(other)) && ...);
+    }(std::index_sequence_for<TTs...>());
+  };
+  
   template <typename... TTs>
   inline constexpr auto operator+(const Tuple<TTs...>& other) const -> Tuple<Ts..., TTs...> {
     return [&]<auto... Is, auto... IIs>(std::index_sequence<Is...>, std::index_sequence<IIs...>) -> Tuple<Ts..., TTs...> {
       return {Get<Is>(*this)..., Get<IIs>(other)...};
     }(std::index_sequence_for<Ts...>(), std::index_sequence_for<TTs...>());
   };
+  
   template <auto I>
   inline constexpr auto operator[](Wrapper<I>) const -> const auto& {
     return Get<I>(*this);
   };
+  
   template <auto I>
   inline constexpr auto operator[](Wrapper<I>) -> auto& {
     return Get<I>(*this);
@@ -86,7 +96,7 @@ template <typename T>
 struct Process {
   using type = decltype(Overloaded(
     []<typename TT>(TT&&) -> std::remove_cvref_t<TT> {},
-    []<std::size_t N>(const char(&)[N]) -> const char(&)[N] {}
+    []<std::size_t N>(const char(&)[N]) -> const char* {}
   )(std::declval<T>()));
 };
 

@@ -66,10 +66,7 @@ template <typename T>
 inline constexpr std::size_t kTupleSize<T&> = kTupleSize<std::remove_reference_t<T>>;
 
 template <typename T>
-inline constexpr std::size_t kTupleSize<const T&> = kTupleSize<std::remove_cvref_t<T>>;
-
-template <typename T>
-inline constexpr std::size_t kTupleSize<const T&&> = kTupleSize<std::remove_cvref_t<T>>;
+inline constexpr std::size_t kTupleSize<const T> = kTupleSize<std::remove_cv_t<T>>;
 
 template <template <typename...> typename M, typename... Ts>
 inline constexpr std::size_t kTupleSize<M<Ts...>> = sizeof...(Ts);
