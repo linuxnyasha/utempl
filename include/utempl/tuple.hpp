@@ -17,20 +17,15 @@ struct TupleLeaf {
   inline constexpr bool operator==(const TupleLeaf&) const = default;
 };
 
-template <std::size_t I, typename... Ts>
-struct TupleHelper {
-  consteval TupleHelper() = default;
-  inline constexpr TupleHelper(const TupleHelper&) = default;
-  inline constexpr TupleHelper(TupleHelper&&) = default;
-  inline constexpr bool operator==(const TupleHelper&) const = default;
-};
 
-template <std::size_t I, typename T, typename... Ts>
-struct TupleHelper<I, T, Ts...> : public TupleLeaf<I, T> , public TupleHelper<I + 1, Ts...> {
-  template <typename TT, typename... TTs>
-  inline constexpr TupleHelper(TT&& arg, TTs&&... args) : 
-    TupleLeaf<I, T>{std::forward<TT>(arg)},
-    TupleHelper<I + 1, Ts...>{std::forward<TTs>(args)...} {};
+template <typename, typename...>
+struct TupleHelper;
+
+template <std::size_t... Is, typename... Ts>
+struct TupleHelper<std::index_sequence<Is...>, Ts...> : public TupleLeaf<Is, Ts>... {
+  template <typename... TTs>
+  inline constexpr TupleHelper(TTs&&... args) : 
+    TupleLeaf<Is, Ts>{std::forward<TTs>(args)}... {};
   inline constexpr TupleHelper(const TupleHelper&) = default;
   inline constexpr TupleHelper(TupleHelper&&) = default;
   inline constexpr bool operator==(const TupleHelper&) const = default;
@@ -65,10 +60,10 @@ inline constexpr auto Get(T&& arg) -> decltype(get<I>(std::forward<T>(arg))) {
 };
 
 template <typename... Ts>
-struct Tuple : public impl::TupleHelper<0, Ts...> {
+struct Tuple : public impl::TupleHelper<std::index_sequence_for<Ts...>, Ts...> {
   template <typename... TTs>
   inline constexpr Tuple(TTs&&... args) : 
-    impl::TupleHelper<0, Ts...>(std::forward<TTs>(args)...) {};
+    impl::TupleHelper<std::index_sequence_for<Ts...>, Ts...>(std::forward<TTs>(args)...) {};
   inline constexpr Tuple(const Tuple&) = default;
   inline constexpr Tuple(Tuple&&) = default;
   inline constexpr bool operator==(const Tuple&) const = default;
