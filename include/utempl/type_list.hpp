@@ -4,6 +4,7 @@
 #include <array>
 #include <ranges>
 
+
 namespace utempl {
 
 namespace impl {
@@ -29,6 +30,12 @@ template <typename... Ts, typename... TTs>
 consteval auto operator==(const TypeList<Ts...>& first, const TypeList<TTs...>& second) -> bool {
   return std::same_as<decltype(first), decltype(second)>;
 };
+
+template <typename... Ts, typename... TTs>
+consteval auto operator+(const TypeList<Ts...>&, const TypeList<TTs...>&) -> TypeList<Ts..., TTs...> {
+  return {};
+};
+
 template <std::size_t... Is, typename T>
 consteval auto Get(std::index_sequence<Is...>, decltype(impl::Caster(Is))..., T, ...) -> T; 
 
@@ -52,5 +59,10 @@ template <typename... Ts>
 consteval auto Transform(TypeList<Ts...>, auto&& f) -> TypeList<decltype(f(TypeList<Ts>{}))...> {
   return {};
 };
+template <typename... Ts>
+consteval auto Filter(TypeList<Ts...>, auto&& f) {
+  return ([](auto&& list){if constexpr(decltype(f(list))::kValue) {return list;} else {return kTypeList<>;}}(kType<Ts>) + ...);
+};
+
 
 } // namespace utempl
