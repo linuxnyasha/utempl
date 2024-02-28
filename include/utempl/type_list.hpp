@@ -52,7 +52,7 @@ template <typename... Ts>
 consteval auto Reverse(TypeList<Ts...> list) {
   return [&]<auto... Is>(std::index_sequence<Is...>) -> TypeList<decltype(Get<sizeof...(Ts) - Is - 1>(list))...> {
     return {};
-  }(std::make_index_sequence<sizeof...(Ts)>());
+  }(std::index_sequence_for<Ts...>());
 };
 
 template <typename... Ts>

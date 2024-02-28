@@ -2,9 +2,9 @@
 #include <fmt/core.h>
 
 namespace utempl {
-  template <std::size_t>
-  struct ConstexprString;
-};
+template <std::size_t>
+struct ConstexprString;
+} // namespace utempl
 
 template <std::size_t Size>
 struct fmt::formatter<utempl::ConstexprString<Size>> : public fmt::formatter<std::string_view> {
@@ -37,7 +37,6 @@ struct ConstexprString {
   inline constexpr ConstexprString() = default;
   inline constexpr ConstexprString(const char (&data)[Size]) : data{} {
     std::ranges::copy_n(data, Size, this->data.begin());
-
   };
   inline constexpr ConstexprString(std::string data) : data{} {
     std::ranges::copy_n(data.begin(), Size, this->data.begin());

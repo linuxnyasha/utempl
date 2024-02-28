@@ -71,7 +71,7 @@ struct Tuple : public impl::TupleHelper<std::index_sequence_for<Ts...>, Ts...> {
   inline constexpr auto operator+(const Tuple<TTs...>& other) const -> Tuple<Ts..., TTs...> {
     return [&]<auto... Is, auto... IIs>(std::index_sequence<Is...>, std::index_sequence<IIs...>) -> Tuple<Ts..., TTs...> {
       return {Get<Is>(*this)..., Get<IIs>(other)...};
-    }(std::make_index_sequence<sizeof...(Ts)>(), std::make_index_sequence<sizeof...(TTs)>());
+    }(std::index_sequence_for<Ts...>(), std::index_sequence_for<TTs...>());
   };
   template <auto I>
   inline constexpr auto operator[](Wrapper<I>) const -> const auto& {

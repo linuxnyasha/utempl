@@ -78,7 +78,7 @@ struct Menu {
     return [&]<auto... Is>(std::index_sequence<Is...>){
       constexpr auto list = ListFromTuple(storage); 
       return GetMax(std::array{(std::remove_cvref_t<decltype(*std::declval<decltype(Get<Is>(list))>().need)>::kSize != 0 ? std::remove_cvref_t<decltype(*std::declval<decltype(Get<Is>(list))>().need)>::kSize : CountDigits(Is))...});
-    }(std::make_index_sequence<sizeof...(Fs)>());
+    }(std::index_sequence_for<Fs...>());
   };
   template <impl::CallbackMessage message, std::invocable F>
   constexpr auto With(F&& f) const {
@@ -129,7 +129,7 @@ struct Menu {
           };
         }; 
       }(Wrapper<Is>{}), ...);
-    }(std::make_index_sequence<sizeof...(Fs)>());
+    }(std::index_sequence_for<Fs...>());
   };
 };
 
