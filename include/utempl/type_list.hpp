@@ -48,6 +48,9 @@ consteval auto Reverse(TypeList<Ts...> list) {
   }(std::make_index_sequence<sizeof...(Ts)>());
 };
 
-
+template <typename... Ts>
+consteval auto Transform(TypeList<Ts...>, auto&& f) -> TypeList<decltype(f(TypeList<Ts>{}))...> {
+  return {};
+};
 
 } // namespace utempl
