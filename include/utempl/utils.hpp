@@ -52,12 +52,34 @@ inline constexpr auto Times(auto&& f) {
   }(std::make_index_sequence<Count>());
 };
 
+template <typename T>
+inline constexpr std::size_t kTupleSize = []() -> std::size_t {
+  static_assert(!sizeof(T), "Not Found");
+  return 0;
+}();
+
 
 template <typename T>
-concept TupleLike = Overloaded(
-  []<template <typename...> typename M, typename... Ts>(TypeList<M<Ts...>>) {return true;},
-  [](auto&&) {return false;}
-)(kType<std::remove_cvref_t<T>>);
+inline constexpr std::size_t kTupleSize<T&&> = kTupleSize<std::remove_reference_t<T>>;
+
+template <typename T>
+inline constexpr std::size_t kTupleSize<T&> = kTupleSize<std::remove_reference_t<T>>;
+
+template <typename T>
+inline constexpr std::size_t kTupleSize<const T&> = kTupleSize<std::remove_cvref_t<T>>;
+
+template <typename T>
+inline constexpr std::size_t kTupleSize<const T&&> = kTupleSize<std::remove_cvref_t<T>>;
+
+template <template <typename...> typename M, typename... Ts>
+inline constexpr std::size_t kTupleSize<M<Ts...>> = sizeof...(Ts);
+
+template <template <typename, std::size_t> typename Array, typename T, std::size_t N>
+inline constexpr std::size_t kTupleSize<Array<T, N>> = N;
+
+
+template <typename T>
+concept TupleLike = kTupleSize<T> == 0 || requires(T t){Get<0>(t);};
 
 template <typename T>
 concept IsTypeList = Overloaded(
@@ -66,23 +88,23 @@ concept IsTypeList = Overloaded(
 )(kType<std::remove_cvref_t<T>>);
 
 
-template <TupleLike T>
-inline constexpr std::size_t kTupleSize = 
-    []<template <typename...> typename M, typename... Ts>(TypeList<M<Ts...>>) {
-        return sizeof...(Ts);
-    }(TypeList<std::remove_cvref_t<T>>{});
-
 template <TupleLike T = Tuple<>, typename... Args>
 inline constexpr auto MakeTuple(Args&&... args) {
-  return [&]<template <typename...> typename M, typename... Ts>(TypeList<M<Ts...>>){
-    return M{std::forward<Args>(args)...};
-  }(kType<std::remove_cvref_t<T>>);
+  return Overloaded(
+    [&]<template <typename...> typename M, typename... Ts>(TypeList<M<Ts...>>){
+      return M{std::forward<Args>(args)...};
+    },
+    [&]<template <typename, std::size_t> typename Array, typename TT, std::size_t N>(TypeList<Array<TT, N>>) {
+      return Array{std::forward<Args>(args)...};
+    }
+  )(kType<std::remove_cvref_t<T>>);
 };
+
 template <TupleLike Tuple>
 inline constexpr auto Transform(Tuple&& container, auto&& f) {
   return [&]<auto... Is>(std::index_sequence<Is...>){
     return MakeTuple<Tuple>(f(Get<Is>(container))...);
-  }(std::make_index_sequence<kTupleSize<std::remove_cvref_t<Tuple>>>());
+  }(std::make_index_sequence<kTupleSize<Tuple>>());
 };
 
 template <TupleLike Tuple>
@@ -109,7 +131,6 @@ struct TupleCater {
   };
 };
 } // namespace impl
-
 
 template <TupleLike... Tuples>
 inline constexpr auto TupleCat(Tuples&&... tuples) {
