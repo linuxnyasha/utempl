@@ -85,10 +85,10 @@ struct Menu {
     return Menu<storage + Tuple{message}, Fs..., std::remove_cvref_t<F>>{.functionStorage = this->functionStorage + Tuple(std::forward<F>(f))};
   };
   template <ConstexprString fmt, ConstexprString enter = "|> ">
-  inline constexpr auto Run(std::istream& in = std::cin, std::FILE* out = stdout) const {
+  inline constexpr auto Run(std::istream& in = std::cin, std::FILE* out = stdout) const -> std::size_t {
     using Cleared = std::remove_cvref_t<decltype(*this)>;
     constexpr auto maxSize = Cleared::GetMaxSize();
-    [&]<auto... Is>(std::index_sequence<Is...>){
+    return [&]<auto... Is>(std::index_sequence<Is...>) -> std::size_t {
       constexpr auto message = ([&]<auto I>(Wrapper<I>){
         constexpr auto message = Get<I>(storage);
         constexpr std::size_t s = maxSize - (message.need ? message.need->size() : CountDigits(I));
@@ -113,9 +113,13 @@ struct Menu {
           ,str3);
         return ConstexprString<size>(data);
       }(Wrapper<Is>{}) + ...) + enter;
-
-      std::fwrite(message.begin(), 1, message.size(), out);
-      std::fflush(out);
+      auto result = std::fwrite(message.begin(), 1, message.size(), out);
+      if(result < message.size()) {
+        return result;
+      };
+      if(std::fflush(out) != 0) {
+        return EOF;
+      };
       std::string input;
       std::getline(in, input);
       ([&]<auto I, impl::CallbackMessage message = Get<I>(storage)>(Wrapper<I>) {
@@ -129,8 +133,10 @@ struct Menu {
           };
         }; 
       }(Wrapper<Is>{}), ...);
+      return 0;
     }(std::index_sequence_for<Fs...>());
   };
+
 };
 
 } // namespace menu
