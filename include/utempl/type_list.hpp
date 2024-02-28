@@ -1,3 +1,4 @@
+#pragma once
 #include <concepts>
 #include <utility>
 #include <array>
@@ -16,6 +17,14 @@ struct Caster {
 template <typename... Ts>
 struct TypeList {
 };
+
+template <typename T>
+inline constexpr auto kType = TypeList<T>{};
+
+template <typename... Ts>
+inline constexpr auto kTypeList = TypeList<Ts...>{};
+
+
 template <typename... Ts, typename... TTs>
 consteval auto operator==(const TypeList<Ts...>& first, const TypeList<TTs...>& second) -> bool {
   return std::same_as<decltype(first), decltype(second)>;
@@ -31,5 +40,14 @@ consteval auto Find(TypeList<Ts...>) -> std::size_t {
   std::array arr{std::same_as<T, Ts>...};
   return std::ranges::find(arr, true) - arr.begin();
 };
+
+template <typename... Ts>
+consteval auto Reverse(TypeList<Ts...> list) {
+  return [&]<auto... Is>(std::index_sequence<Is...>) -> TypeList<decltype(Get<sizeof...(Ts) - Is - 1>(list))...> {
+    return {};
+  }(std::make_index_sequence<sizeof...(Ts)>());
+};
+
+
 
 } // namespace utempl

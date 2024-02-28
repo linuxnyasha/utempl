@@ -2,6 +2,7 @@
 #include <utempl/optional.hpp>
 #include <utempl/constexpr_string.hpp>
 #include <utempl/tuple.hpp>
+#include <utempl/utils.hpp>
 #include <iostream>
 #include <array>
 #include <fmt/format.h>
@@ -9,9 +10,6 @@
 
 
 namespace utempl {
-
-template <auto>
-struct Wrapper {};
 
 constexpr std::size_t CountDigits(std::size_t num) {
   std::size_t count = 0;

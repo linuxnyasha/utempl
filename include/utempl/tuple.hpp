@@ -1,7 +1,10 @@
+#pragma once
 #include <utempl/type_list.hpp>
 
 namespace utempl {
 
+template <auto>
+struct Wrapper;
 namespace impl {
 
 template <auto, typename T>
@@ -56,6 +59,11 @@ inline constexpr auto Get(Tuple<Ts...>&& tuple) -> auto&& requires (I < sizeof..
   return std::move(static_cast<impl::TupleLeaf<I, Type>&&>(tuple).value);
 };
 
+template <std::size_t I, typename T>
+inline constexpr auto Get(T&& arg) -> decltype(get<I>(std::forward<T>(arg))) {
+  return get<I>(std::forward<T>(arg));
+};
+
 template <typename... Ts>
 struct Tuple : public impl::TupleHelper<0, Ts...> {
   template <typename... TTs>
@@ -70,20 +78,18 @@ struct Tuple : public impl::TupleHelper<0, Ts...> {
       return {Get<Is>(*this)..., Get<IIs>(other)...};
     }(std::make_index_sequence<sizeof...(Ts)>(), std::make_index_sequence<sizeof...(TTs)>());
   };
+  template <auto I>
+  inline constexpr auto operator[](Wrapper<I>) const -> const auto& {
+    return Get<I>(*this);
+  };
+  template <auto I>
+  inline constexpr auto operator[](Wrapper<I>) -> auto& {
+    return Get<I>(*this);
+  };
 };
 
 template <typename... Ts>
 Tuple(Ts&&...) -> Tuple<std::remove_cvref_t<Ts>...>;
-
-template <typename>
-struct TupleSize {};
-
-template <typename... Ts>
-struct TupleSize<Tuple<Ts...>> {
-  static constexpr auto value = sizeof...(Ts);
-};
-template <typename Tuple>
-inline constexpr auto kTupleSize = TupleSize<Tuple>::value;
 
 template <typename... Ts>
 consteval auto ListFromTuple(Tuple<Ts...>) -> TypeList<Ts...> {
