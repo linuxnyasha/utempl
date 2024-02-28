@@ -1,6 +1,6 @@
 #pragma once
 #include <utempl/type_list.hpp>
-
+#include <utempl/overloaded.hpp>
 namespace utempl {
 
 template <auto>
@@ -10,10 +10,6 @@ namespace impl {
 template <auto, typename T>
 struct TupleLeaf {
   T value;
-  template <typename TT>
-  inline constexpr TupleLeaf(TT&& arg) : value(std::forward<TT>(arg)) {};
-  inline constexpr TupleLeaf(const TupleLeaf&) = default;
-  inline constexpr TupleLeaf(TupleLeaf&&) = default;
   inline constexpr bool operator==(const TupleLeaf&) const = default;
 };
 
@@ -64,6 +60,8 @@ struct Tuple : public impl::TupleHelper<std::index_sequence_for<Ts...>, Ts...> {
   template <typename... TTs>
   inline constexpr Tuple(TTs&&... args) : 
     impl::TupleHelper<std::index_sequence_for<Ts...>, Ts...>(std::forward<TTs>(args)...) {};
+  inline constexpr Tuple(Ts... args) :
+    impl::TupleHelper<std::index_sequence_for<Ts...>, Ts...>(std::move(args)...) {};
   inline constexpr Tuple(const Tuple&) = default;
   inline constexpr Tuple(Tuple&&) = default;
   inline constexpr bool operator==(const Tuple&) const = default;
@@ -82,14 +80,24 @@ struct Tuple : public impl::TupleHelper<std::index_sequence_for<Ts...>, Ts...> {
     return Get<I>(*this);
   };
 };
+namespace impl {
+
+template <typename T>
+struct Process {
+  using type = decltype(Overloaded(
+    []<typename TT>(TT&&) -> std::remove_cvref_t<TT> {},
+    []<std::size_t N>(const char(&)[N]) -> const char(&)[N] {}
+  )(std::declval<T>()));
+};
+
+} // namespace impl
 
 template <typename... Ts>
-Tuple(Ts&&...) -> Tuple<std::remove_cvref_t<Ts>...>;
+Tuple(Ts&&...) -> Tuple<typename impl::Process<Ts>::type...>;
 
 template <typename... Ts>
 consteval auto ListFromTuple(Tuple<Ts...>) -> TypeList<Ts...> {
   return {};
 };
-
 
 } // namespace utempl
