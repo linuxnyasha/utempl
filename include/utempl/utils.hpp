@@ -36,9 +36,9 @@ consteval auto operator"" _c() {
 } // namespace literals
 
 template <std::size_t I, typename... Ts>
-inline constexpr auto Arg(Ts&&... args) requires (I < sizeof...(Ts)) {
-  return [&]<auto... Is>(std::index_sequence<Is...>){
-    return [](decltype(Caster(Is))..., auto&& response, ...){
+inline constexpr auto Arg(Ts&&... args) -> decltype(auto) requires (I < sizeof...(Ts)) {
+  return [&]<auto... Is>(std::index_sequence<Is...>) -> decltype(auto) {
+    return [](decltype(Caster(Is))..., auto&& response, ...) -> decltype(auto) {
       return response;
     }(std::forward<Ts>(args)...);
   }(std::make_index_sequence<I>());
@@ -140,14 +140,14 @@ concept IsTypeList = Overloaded(
 template <TupleLike Tuple>
 inline constexpr auto Transform(Tuple&& container, auto&& f) {
   return [&]<auto... Is>(std::index_sequence<Is...>){
-    return MakeTuple<Tuple>(f(Get<Is>(container))...);
+    return MakeTuple<Tuple>(f(Get<Is>(std::forward<Tuple>(container)))...);
   }(std::make_index_sequence<kTupleSize<Tuple>>());
 };
 
 template <TupleLike Tuple>
 inline constexpr auto Reverse(Tuple&& tuple) {
   return [&]<auto... Is>(std::index_sequence<Is...>) {
-    return MakeTuple<Tuple>(Get<kTupleSize<Tuple> - Is - 1>(tuple)...);
+    return MakeTuple<Tuple>(Get<kTupleSize<Tuple> - Is - 1>(std::forward<Tuple>(tuple))...);
   }(std::make_index_sequence<kTupleSize<Tuple>>());
 };
 
@@ -183,7 +183,7 @@ inline constexpr auto LeftFold(Tuple&& tuple, T&& init, F&& f) {
     return (
       impl::LeftFold<std::remove_cvref_t<T>, std::remove_cvref_t<F>>{.data = std::forward<T>(init), .f = std::forward<F>(f)} 
       | ...
-      | impl::LeftFold<std::remove_cvref_t<decltype(Get<Is>(tuple))>>{.data = Get<Is>(tuple)}
+      | impl::LeftFold<std::remove_cvref_t<decltype(Get<Is>(std::forward<Tuple>(tuple)))>>{.data = Get<Is>(std::forward<Tuple>(tuple))}
     ).data;
   }(std::make_index_sequence<kTupleSize<Tuple>>());
 };
@@ -193,7 +193,7 @@ inline constexpr auto LeftFold(Tuple&& tuple, T&& init, F&& f) {
 template <TupleLike Tuple, TupleLike Tuple2>
 inline constexpr auto TupleCat(Tuple&& tuple, Tuple2&& tuple2) {
   return [&]<auto... Is, auto... IIs>(std::index_sequence<Is...>, std::index_sequence<IIs...>){
-    return MakeTuple<Tuple>(Get<Is>(tuple)..., Get<IIs>(tuple2)...);
+    return MakeTuple<Tuple>(Get<Is>(std::forward<Tuple>(tuple))..., Get<IIs>(std::forward<Tuple2>(tuple2))...);
   }(std::make_index_sequence<kTupleSize<Tuple>>(), std::make_index_sequence<kTupleSize<Tuple2>>());
 };
 
