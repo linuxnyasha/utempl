@@ -75,17 +75,8 @@ template <template <typename, std::size_t> typename Array, typename T, std::size
 inline constexpr std::size_t kTupleSize<Array<T, N>> = N;
 
 
-template <typename T>
-concept TupleLike = kTupleSize<T> == 0 || requires(T t){Get<0>(t);};
 
-template <typename T>
-concept IsTypeList = Overloaded(
-  []<typename... Ts>(TypeList<TypeList<Ts...>>) {return true;},
-  [](auto&&) {return false;}
-)(kType<std::remove_cvref_t<T>>);
-
-
-template <TupleLike T = Tuple<>, typename... Args>
+template <typename T = Tuple<>, typename... Args>
 inline constexpr auto MakeTuple(Args&&... args) {
   return Overloaded(
     [&]<template <typename...> typename M, typename... Ts>(TypeList<M<Ts...>>){
@@ -96,6 +87,55 @@ inline constexpr auto MakeTuple(Args&&... args) {
     }
   )(kType<std::remove_cvref_t<T>>);
 };
+
+namespace impl {
+
+template <typename T>
+struct Getter {
+  friend consteval auto Magic(Getter<T>);
+};
+
+
+template <typename T>
+struct Inserter {
+  friend consteval auto Magic(Getter<T>) {return 42;};
+};
+
+
+template <typename T>
+struct SafeTupleChecker {
+  consteval SafeTupleChecker(SafeTupleChecker&&) {
+    std::ignore = Inserter<SafeTupleChecker<T>>{};
+  };
+  consteval SafeTupleChecker(const SafeTupleChecker&) = default;
+  consteval SafeTupleChecker() = default;
+};
+consteval auto TrueF(auto&&...) {
+  return true;
+};
+
+template <typename T>
+inline constexpr const SafeTupleChecker<T> kSafeTupleChecker;
+
+
+template <typename T>
+concept IsSafeTuple = TrueF(Get<0>(std::move(MakeTuple<T>(0, kSafeTupleChecker<T>)))) && !requires{Magic(Getter<T>{});};
+
+
+} // namespace impl
+
+
+
+
+template <typename T>
+concept TupleLike = impl::IsSafeTuple<T>;
+
+template <typename T>
+concept IsTypeList = Overloaded(
+  []<typename... Ts>(TypeList<TypeList<Ts...>>) {return true;},
+  [](auto&&) {return false;}
+)(kType<std::remove_cvref_t<T>>);
+
 
 template <TupleLike Tuple>
 inline constexpr auto Transform(Tuple&& container, auto&& f) {
@@ -225,12 +265,7 @@ template <typename F, typename... Ts>
 struct Curryer {
   F f;
   Tuple<Ts...> data;
-  inline constexpr operator decltype(f(std::declval<Ts>()...))() && {
-    return [&]<auto... Is>(std::index_sequence<Is...>){
-      return this->f(std::move(Get<Is>(this->data))...);
-    }(std::index_sequence_for<Ts...>());
-  };
-  inline constexpr operator decltype(f(std::declval<Ts>()...))() const {
+  inline constexpr operator std::invoke_result_t<F, Ts...>() const {
     return [&]<auto... Is>(std::index_sequence<Is...>){
       return this->f(Get<Is>(this->data)...);
     }(std::index_sequence_for<Ts...>());
