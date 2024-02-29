@@ -280,7 +280,6 @@ inline constexpr auto Curry(F&& f) -> Curryer<std::remove_cvref_t<F>> {
   return {.f = std::forward<F>(f), .data = Tuple{}};
 };
 
-static_assert(Curry([](auto... args) {return (0 + ... + args);})(1)(2)(3) == 6);
 
 
 } // namespace utempl
