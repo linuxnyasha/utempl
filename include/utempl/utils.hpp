@@ -221,4 +221,31 @@ inline constexpr auto Filter(Tuple&& tuple, auto&& f) {
   );
 };
 
+template <typename F, typename... Ts>
+struct Curryer {
+  F f;
+  Tuple<Ts...> data;
+  inline constexpr operator decltype(f(std::declval<Ts>()...))() && {
+    return [&]<auto... Is>(std::index_sequence<Is...>){
+      return this->f(std::move(Get<Is>(this->data))...);
+    }(std::index_sequence_for<Ts...>());
+  };
+  inline constexpr operator decltype(f(std::declval<Ts>()...))() const {
+    return [&]<auto... Is>(std::index_sequence<Is...>){
+      return this->f(Get<Is>(this->data)...);
+    }(std::index_sequence_for<Ts...>());
+  };
+  template <typename T>
+  inline constexpr auto operator()(T&& arg) const -> Curryer<F, Ts..., std::remove_cvref_t<T>>{
+    return {.f = this->f, .data = this->data + Tuple{std::forward<T>(arg)}};
+  };
+};
+template <typename F>
+inline constexpr auto Curry(F&& f) -> Curryer<std::remove_cvref_t<F>> {
+  return {.f = std::forward<F>(f), .data = Tuple{}};
+};
+
+static_assert(Curry([](auto... args) {return (0 + ... + args);})(1)(2)(3) == 6);
+
+
 } // namespace utempl
