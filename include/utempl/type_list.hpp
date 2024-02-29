@@ -61,7 +61,17 @@ consteval auto Transform(TypeList<Ts...>, auto&& f) -> TypeList<decltype(f(TypeL
 };
 template <typename... Ts>
 consteval auto Filter(TypeList<Ts...>, auto&& f) {
-  return ([](auto&& list){if constexpr(decltype(f(list))::kValue) {return list;} else {return kTypeList<>;}}(kType<Ts>) + ...);
+  return (
+    (kTypeList<> 
+    + [](auto&& list) {
+        if constexpr(decltype(f(list))::kValue) {
+          return list;
+        } else {
+          return kTypeList<>;
+        }
+      }(kType<Ts>)
+    )
+  + ...);
 };
 
 

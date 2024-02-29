@@ -72,6 +72,35 @@ CallbackMessage(const char(&)[N1]) -> CallbackMessage<N1, 0>;
 
 template <Tuple storage = Tuple{}, typename... Fs>
 struct Menu {
+private:
+  template <ConstexprString fmt, ConstexprString message, ConstexprString alignment, ConstexprString neededInput>
+  static consteval auto FormatMessage() {
+    // + 1 - NULL Terminator
+    constexpr auto size = fmt::formatted_size(FMT_COMPILE(fmt.data.begin())
+      ,neededInput
+      ,message
+      ,alignment) + 1;
+    char data[size]{};
+    fmt::format_to(data, FMT_COMPILE(fmt.data.begin())
+      ,neededInput
+      ,message
+      ,alignment);
+    return ConstexprString<size>(data);
+  };
+  template <ConstexprString fmt, std::size_t I>
+  static consteval auto FormatMessageFor() {
+    constexpr ConstexprString message = Get<I>(storage).message;
+    constexpr ConstexprString neededInput = [&] {
+      if constexpr(Get<I>(storage).need) {
+        return *Get<I>(storage).need;
+      } else {
+        return ToString<I>();            
+      };
+    }();
+    constexpr ConstexprString alignment = CreateStringWith<GetMaxSize() - (Get<I>(storage).need ? Get<I>(storage).need->size() : CountDigits(I))>(' ');
+    return FormatMessage<fmt, message, alignment, neededInput>();
+  };
+public:
   Tuple<Fs...> functionStorage;
 
   static consteval auto GetMaxSize() -> std::size_t {
@@ -86,36 +115,11 @@ struct Menu {
   };
   template <ConstexprString fmt, ConstexprString enter = "|> ">
   inline constexpr auto Run(std::istream& in = std::cin, std::FILE* out = stdout) const -> std::size_t {
-    using Cleared = std::remove_cvref_t<decltype(*this)>;
-    constexpr auto maxSize = Cleared::GetMaxSize();
     return [&]<auto... Is>(std::index_sequence<Is...>) -> std::size_t {
-      constexpr auto message = ([&]<auto I>(Wrapper<I>){
-        constexpr auto message = Get<I>(storage);
-        constexpr std::size_t s = maxSize - (message.need ? message.need->size() : CountDigits(I));
-        constexpr auto str3 = CreateStringWith<s>(' ');
-        constexpr auto str2 = message.message; 
-        constexpr auto str1 = [&] {
-          if constexpr(message.need) {
-            return *message.need;
-          } else {
-            return ToString<I>();            
-          };
-        }();
-        // + 1 - NULL Terminator
-        constexpr auto size = fmt::formatted_size(FMT_COMPILE(fmt.data.begin())
-          ,str1
-          ,str2
-          ,str3) + 1;
-        char data[size] = {};
-        fmt::format_to(data, FMT_COMPILE(fmt.begin())
-          ,str1
-          ,str2
-          ,str3);
-        return ConstexprString<size>(data);
-      }(Wrapper<Is>{}) + ...) + enter;
+      constexpr auto message = ((FormatMessageFor<fmt, Is>() + ...) + enter);
       auto result = std::fwrite(message.begin(), 1, message.size(), out);
       if(result < message.size()) {
-        return result;
+        return EOF;
       };
       if(std::fflush(out) != 0) {
         return EOF;
