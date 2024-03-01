@@ -267,6 +267,14 @@ inline constexpr auto Filter(Tuple&& tuple, auto&& f) {
   );
 };
 
+template <TupleLike Tuple>
+inline constexpr auto ForEach(Tuple&& tuple, auto&& f) {
+  [&]<auto... Is>(std::index_sequence<Is...>){
+    (f(Get<Is>(std::forward<Tuple>(tuple))), ...);
+  }(std::make_index_sequence<kTupleSize<Tuple>>());
+};
+
+
 template <typename F, typename... Ts>
 struct Curryer {
   F f;
