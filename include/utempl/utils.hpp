@@ -92,13 +92,13 @@ namespace impl {
 
 template <typename T>
 struct Getter {
-  friend consteval auto Magic(Getter<T>);
+  friend consteval bool Magic(Getter<T>);
 };
 
 
 template <typename T>
 struct Inserter {
-  friend consteval auto Magic(Getter<T>) {return 42;};
+  friend consteval bool Magic(Getter<T>) {return true;};
 };
 
 
@@ -117,9 +117,15 @@ consteval auto TrueF(auto&&...) {
 template <typename T>
 inline constexpr const SafeTupleChecker<T> kSafeTupleChecker;
 
+template <typename T, bool = false>
+struct IsSafeTuple {
+  static constexpr auto value = true;
+};
 
 template <typename T>
-concept IsSafeTuple = TrueF(Get<0>(std::move(MakeTuple<T>(0, kSafeTupleChecker<T>)))) && !requires{Magic(Getter<T>{});};
+struct IsSafeTuple<T, bool(TrueF(Get<0>(MakeTuple<T>(0, kSafeTupleChecker<T>))) && !Magic(Getter<SafeTupleChecker<T>>{})) ? false : false> {
+  static constexpr bool value = false;
+};
 
 
 } // namespace impl
@@ -128,7 +134,7 @@ concept IsSafeTuple = TrueF(Get<0>(std::move(MakeTuple<T>(0, kSafeTupleChecker<T
 
 
 template <typename T>
-concept TupleLike = impl::IsSafeTuple<T>;
+concept TupleLike = requires{Get<0>(MakeTuple<T>(42));} && impl::IsSafeTuple<T>::value;
 
 template <typename T>
 concept IsTypeList = Overloaded(

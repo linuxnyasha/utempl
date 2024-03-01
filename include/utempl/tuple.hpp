@@ -19,14 +19,6 @@ struct TupleHelper;
 
 template <std::size_t... Is, typename... Ts>
 struct TupleHelper<std::index_sequence<Is...>, Ts...> : public TupleLeaf<Is, Ts>... {
-  template <typename... TTs>
-  inline constexpr TupleHelper(TTs&&... args) : 
-    TupleLeaf<Is, Ts>{std::forward<TTs>(args)}... {};
-  inline constexpr TupleHelper(const TupleHelper&) = default;
-  inline constexpr TupleHelper(TupleHelper&) = default;
-  inline constexpr TupleHelper(TupleHelper&&) = default;
-  inline constexpr TupleHelper() :
-    TupleLeaf<Is, Ts>{}... {};
   inline constexpr bool operator==(const TupleHelper&) const = default;
 };
 
@@ -48,7 +40,7 @@ inline constexpr auto Get(const Tuple<Ts...>& tuple) -> const auto& requires (I 
 };
 
 template <std::size_t I, typename... Ts>
-inline constexpr auto Get(Tuple<Ts...>&& tuple) -> auto&& requires (I < sizeof...(Ts)) {
+inline constexpr auto Get(Tuple<Ts...>&& tuple) -> decltype(auto) requires (I < sizeof...(Ts)) {
   using Type = decltype(Get<I>(TypeList<Ts...>{}));
   return std::move(static_cast<impl::TupleLeaf<I, Type>&&>(tuple).value);
 };
@@ -62,13 +54,19 @@ template <typename... Ts>
 struct Tuple : public impl::TupleHelper<std::index_sequence_for<Ts...>, Ts...> {
   template <typename... TTs>
   inline constexpr Tuple(TTs&&... args) : 
-    impl::TupleHelper<std::index_sequence_for<Ts...>, Ts...>(std::forward<TTs>(args)...) {};
-  inline constexpr Tuple(Ts... args) :
-    impl::TupleHelper<std::index_sequence_for<Ts...>, Ts...>(std::move(args)...) {};
+    impl::TupleHelper<std::index_sequence_for<Ts...>, Ts...>{{std::forward<TTs>(args)}...} {};
+  inline constexpr Tuple(const Ts&... args) :
+    impl::TupleHelper<std::index_sequence_for<Ts...>, Ts...>{{args}...} {};
+  inline constexpr Tuple(Ts&... args) :
+    impl::TupleHelper<std::index_sequence_for<Ts...>, Ts...>{{args}...} {};
+  inline constexpr Tuple(Ts&&... args) :
+    impl::TupleHelper<std::index_sequence_for<Ts...>, Ts...>{{std::move(args)}...} {};
+  inline constexpr Tuple(const Ts&&... args) :
+    impl::TupleHelper<std::index_sequence_for<Ts...>, Ts...>{{args}...} {};
   inline constexpr Tuple(const Tuple&) = default;
   inline constexpr Tuple(Tuple&&) = default;
   inline constexpr Tuple(Tuple&) = default;
-  inline constexpr Tuple() requires (sizeof...(Ts) != 0) : 
+  inline constexpr Tuple() : 
     impl::TupleHelper<std::index_sequence_for<Ts...>, Ts...>() {};
   template <typename... TTs>
   inline constexpr bool operator==(const Tuple<TTs...>& other) const 
@@ -95,6 +93,18 @@ struct Tuple : public impl::TupleHelper<std::index_sequence_for<Ts...>, Ts...> {
     return Get<I>(*this);
   };
 };
+
+template <>
+struct Tuple<> {
+  template <typename... Ts>
+  inline constexpr auto operator+(const Tuple<Ts...>& other) const -> Tuple<Ts...> {
+    return other;
+  };
+  inline constexpr auto operator==(const Tuple<>&) const {
+    return true;
+  };
+};
+
 namespace impl {
 
 template <typename T>
