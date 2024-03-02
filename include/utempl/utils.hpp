@@ -92,20 +92,22 @@ namespace impl {
 
 template <typename T>
 struct Getter {
-  friend consteval bool Magic(Getter<T>);
+  friend consteval auto Magic(Getter<T>);
 };
 
 
-template <typename T>
+template <typename T, auto Insert>
 struct Inserter {
-  friend consteval bool Magic(Getter<T>) {return true;};
+  friend consteval auto Magic(Getter<T>) -> decltype(auto) {
+    return Insert;
+  };
 };
 
 
 template <typename T>
 struct SafeTupleChecker {
   consteval SafeTupleChecker(SafeTupleChecker&&) {
-    std::ignore = Inserter<SafeTupleChecker<T>>{};
+    std::ignore = Inserter<SafeTupleChecker<T>, false>{};
   };
   consteval SafeTupleChecker(const SafeTupleChecker&) = default;
   consteval SafeTupleChecker() = default;
@@ -123,7 +125,8 @@ struct IsSafeTuple {
 };
 
 template <typename T>
-struct IsSafeTuple<T, bool(TrueF(Get<0>(MakeTuple<T>(0, kSafeTupleChecker<T>))) && !Magic(Getter<SafeTupleChecker<T>>{})) ? false : false> {
+struct IsSafeTuple<T, bool(TrueF(Get<0>(std::move(Get<0>(Tuple{MakeTuple<T>(0, kSafeTupleChecker<T>)})))) 
+                           && Magic(Getter<SafeTupleChecker<T>>{})) ? false : false> {
   static constexpr bool value = false;
 };
 
