@@ -1,5 +1,5 @@
 #pragma once
-#include <fmt/core.h>
+#include <fmt/format.h>
 
 namespace utempl {
 template <std::size_t>
@@ -54,8 +54,8 @@ struct ConstexprString {
   template <std::size_t SSize>
   inline constexpr auto operator+(const ConstexprString<SSize>& other) -> ConstexprString<Size + SSize - 1> {
     ConstexprString<Size + SSize - 1> response;
-    std::copy_n(this->begin(), Size - 1, response.begin());
-    std::copy_n(other.begin(), SSize, response.begin() + Size - 1);
+    std::ranges::copy_n(this->begin(), Size - 1, response.begin());
+    std::ranges::copy_n(other.begin(), SSize, response.begin() + Size - 1);
     return response;
   };
   inline constexpr ConstexprString(const ConstexprString&) = default; 
