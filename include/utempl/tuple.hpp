@@ -66,6 +66,9 @@ struct Tuple : public impl::TupleHelper<std::index_sequence_for<Ts...>, Ts...> {
   inline constexpr Tuple(const Tuple&) = default;
   inline constexpr Tuple(Tuple&&) = default;
   inline constexpr Tuple(Tuple&) = default;
+  inline constexpr Tuple& operator=(const Tuple&) = default;
+  inline constexpr Tuple& operator=(Tuple&&) = default;
+  inline constexpr Tuple& operator=(Tuple&) = default;
   inline constexpr Tuple() : 
     impl::TupleHelper<std::index_sequence_for<Ts...>, Ts...>() {};
   template <typename... TTs>
