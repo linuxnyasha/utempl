@@ -18,8 +18,16 @@ template <typename, typename...>
 struct TupleHelper;
 
 template <std::size_t... Is, typename... Ts>
-struct TupleHelper<std::index_sequence<Is...>, Ts...> : public TupleLeaf<Is, Ts>... {
+struct TupleHelper<std::index_sequence<Is...>, Ts...> : public impl::TupleLeaf<Is, Ts>... {
   inline constexpr bool operator==(const TupleHelper&) const = default;
+};
+
+template <typename T>
+struct Process {
+  using type = decltype(Overloaded(
+    []<typename TT>(TT&&) -> std::remove_cvref_t<TT> {},
+    []<std::size_t N>(const char(&)[N]) -> const char* {}
+  )(std::declval<T>()));
 };
 
 } // namespace impl
@@ -51,17 +59,14 @@ inline constexpr auto Get(T&& arg) -> decltype(get<I>(std::forward<T>(arg))) {
 };
 
 template <typename... Ts>
-struct Tuple : public impl::TupleHelper<std::index_sequence_for<Ts...>, Ts...> {
+struct Tuple : impl::TupleHelper<std::index_sequence_for<Ts...>, Ts...> {
   template <typename... TTs>
   inline constexpr Tuple(TTs&&... args) : 
     impl::TupleHelper<std::index_sequence_for<Ts...>, Ts...>{{std::forward<TTs>(args)}...} {};
-  inline constexpr Tuple(const Ts&... args) :
-    impl::TupleHelper<std::index_sequence_for<Ts...>, Ts...>{{args}...} {};
-  inline constexpr Tuple(Ts&... args) :
-    impl::TupleHelper<std::index_sequence_for<Ts...>, Ts...>{{args}...} {};
+  template <std::invocable... Fs>
+  inline constexpr Tuple(Fs&&... fs) requires (!std::invocable<Ts> || ...) :
+    impl::TupleHelper<std::index_sequence_for<Ts...>, Ts...>{{fs()}...} {};
   inline constexpr Tuple(Ts&&... args) :
-    impl::TupleHelper<std::index_sequence_for<Ts...>, Ts...>{{std::move(args)}...} {};
-  inline constexpr Tuple(const Ts&&... args) :
     impl::TupleHelper<std::index_sequence_for<Ts...>, Ts...>{{args}...} {};
   inline constexpr Tuple(const Tuple&) = default;
   inline constexpr Tuple(Tuple&&) = default;
@@ -71,17 +76,14 @@ struct Tuple : public impl::TupleHelper<std::index_sequence_for<Ts...>, Ts...> {
   inline constexpr Tuple& operator=(Tuple&) = default;
   inline constexpr Tuple() : 
     impl::TupleHelper<std::index_sequence_for<Ts...>, Ts...>() {};
-  template <typename... TTs>
-  inline constexpr bool operator==(const Tuple<TTs...>& other) const 
-        requires (TypeList<Ts...>{} == TypeList<TTs...>{}) {
-    return [&]<auto... Is>(std::index_sequence<Is...>){
+  inline constexpr bool operator==(const Tuple<Ts...>& other) const {
+    return [&]<std::size_t... Is>(std::index_sequence<Is...>){
       return ((Get<Is>(*this) == Get<Is>(other)) && ...);
-    }(std::index_sequence_for<TTs...>());
-  };
-  
+    }(std::index_sequence_for<Ts...>());
+  }; 
   template <typename... TTs>
   inline constexpr auto operator+(const Tuple<TTs...>& other) const -> Tuple<Ts..., TTs...> {
-    return [&]<auto... Is, auto... IIs>(std::index_sequence<Is...>, std::index_sequence<IIs...>) -> Tuple<Ts..., TTs...> {
+    return [&]<std::size_t... Is, std::size_t... IIs>(std::index_sequence<Is...>, std::index_sequence<IIs...>) -> Tuple<Ts..., TTs...> {
       return {Get<Is>(*this)..., Get<IIs>(other)...};
     }(std::index_sequence_for<Ts...>(), std::index_sequence_for<TTs...>());
   };
@@ -107,19 +109,6 @@ struct Tuple<> {
     return true;
   };
 };
-
-namespace impl {
-
-template <typename T>
-struct Process {
-  using type = decltype(Overloaded(
-    []<typename TT>(TT&&) -> std::remove_cvref_t<TT> {},
-    []<std::size_t N>(const char(&)[N]) -> const char* {}
-  )(std::declval<T>()));
-};
-
-} // namespace impl
-
 template <typename... Ts>
 Tuple(Ts&&...) -> Tuple<typename impl::Process<Ts>::type...>;
 

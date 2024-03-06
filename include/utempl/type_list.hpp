@@ -37,7 +37,7 @@ consteval auto operator+(const TypeList<Ts...>&, const TypeList<TTs...>&) -> Typ
 };
 
 template <std::size_t... Is, typename T>
-consteval auto Get(std::index_sequence<Is...>, decltype(impl::Caster(Is))..., T, ...) -> T; 
+consteval auto Get(std::index_sequence<Is...>, decltype(impl::Caster(Is))..., T&& arg, ...) -> T; 
 
 template <std::size_t I, typename... Ts>
 consteval auto Get(const TypeList<Ts...>&) -> decltype(Get(std::make_index_sequence<I>(), std::declval<Ts>()...)) requires (I < sizeof...(Ts));
