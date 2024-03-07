@@ -20,6 +20,11 @@ struct TypeList {
 };
 
 template <typename T>
+struct TypeList<T> {
+  using Type = T;
+};
+
+template <typename T>
 inline constexpr auto kType = TypeList<T>{};
 
 template <typename... Ts>
