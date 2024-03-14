@@ -2,6 +2,7 @@
 #include <concepts>
 #include <utility>
 #include <array>
+#include <utempl/overloaded.hpp>
 #include <ranges>
 
 
@@ -30,6 +31,13 @@ inline constexpr auto kType = TypeList<T>{};
 template <typename... Ts>
 inline constexpr auto kTypeList = TypeList<Ts...>{};
 
+template <typename T>
+concept IsTypeList = Overloaded(
+  []<typename... Ts>(TypeList<TypeList<Ts...>>) {return true;},
+  [](auto&&) {return false;}
+)(kType<std::remove_cvref_t<T>>);
+
+
 
 template <typename... Ts, typename... TTs>
 consteval auto operator==(const TypeList<Ts...>& first, const TypeList<TTs...>& second) -> bool {
@@ -49,7 +57,7 @@ consteval auto Get(const TypeList<Ts...>&) -> decltype(Get(std::make_index_seque
 
 template <typename T, typename... Ts>
 consteval auto Find(TypeList<Ts...>) -> std::size_t {
-  std::array arr{std::same_as<T, Ts>...};
+  std::array<bool, sizeof...(Ts)> arr{std::same_as<T, Ts>...};
   return std::ranges::find(arr, true) - arr.begin();
 };
 
@@ -65,7 +73,7 @@ consteval auto Transform(TypeList<Ts...>, auto&& f) -> TypeList<decltype(f(TypeL
   return {};
 };
 template <typename... Ts>
-consteval auto Filter(TypeList<Ts...>, auto&& f) {
+consteval auto FilterTypeList(TypeList<Ts...>, auto&& f) {
   return (
     (kTypeList<> 
     + [](auto&& list) {

@@ -139,12 +139,6 @@ struct IsSafeTuple<T, bool(TrueF(Get<0>(std::move(Get<0>(Tuple{MakeTuple<T>(0, k
 template <typename T>
 concept TupleLike = requires{Get<0>(MakeTuple<T>(42));} && impl::IsSafeTuple<T>::value;
 
-template <typename T>
-concept IsTypeList = Overloaded(
-  []<typename... Ts>(TypeList<TypeList<Ts...>>) {return true;},
-  [](auto&&) {return false;}
-)(kType<std::remove_cvref_t<T>>);
-
 
 template <TupleLike Tuple>
 inline constexpr auto Transform(Tuple&& container, auto&& f) {
