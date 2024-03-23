@@ -294,16 +294,25 @@ inline constexpr auto Curry(F&& f) -> Curryer<std::remove_cvref_t<F>> {
 template <TupleLike Tuple, typename T>
 inline constexpr auto Find(Tuple&& tuple, T&& find) -> std::size_t {
   return [&]<std::size_t... Is>(std::index_sequence<Is...>) -> std::size_t {
+    using Type = std::remove_cvref_t<T>;
     std::array<bool, kTupleSize<Tuple>> bs{Overloaded(
-      [&](const T& element){
+      [&](const Type& element) {
+        return element == find;
+      },
+      [&](const Type&& element) {
+        return element == find;
+      },
+      [&](Type&& element) {
+        return element == find;
+      },
+      [&](Type& element) {
         return element == find;
       },
       [](auto&&) {
         return false;
       }
-    )(Get<Is>(tuple))...};
+    )(Get<Is>(std::forward<Tuple>(tuple)))...};
     return std::ranges::find(bs, true) - bs.begin();
   }(std::make_index_sequence<kTupleSize<Tuple>>());
 };
-
 } // namespace utempl
