@@ -74,18 +74,37 @@ inline constexpr std::size_t kTupleSize<M<Ts...>> = sizeof...(Ts);
 template <template <typename, std::size_t> typename Array, typename T, std::size_t N>
 inline constexpr std::size_t kTupleSize<Array<T, N>> = N;
 
+template <typename T>
+struct TupleMaker {
+};
+
+template <typename... Ts>
+struct TupleMaker<std::tuple<Ts...>> {
+  template <typename... Args>
+  static inline constexpr auto Make(Args&&... args) {
+    return std::tuple{std::forward<Args>(args)...};
+  };
+};
+template <typename... Ts>
+struct TupleMaker<Tuple<Ts...>> {
+  template <typename... Args>
+  static inline constexpr auto Make(Args&&... args) {
+    return Tuple{std::forward<Args>(args)...};
+  };
+};
+template <typename T, std::size_t N>
+struct TupleMaker<std::array<T, N>> {
+  template <typename... Args>
+  static inline constexpr auto Make(Args&&... args) {
+    return std::array{std::forward<Args>(args)...};
+  };
+};
+
 
 
 template <typename T = Tuple<>, typename... Args>
 inline constexpr auto MakeTuple(Args&&... args) {
-  return Overloaded(
-    [&]<template <typename...> typename M, typename... Ts>(TypeList<M<Ts...>>){
-      return M{std::forward<Args>(args)...};
-    },
-    [&]<template <typename, std::size_t> typename Array, typename TT, std::size_t N>(TypeList<Array<TT, N>>) {
-      return Array{std::forward<Args>(args)...};
-    }
-  )(kType<std::remove_cvref_t<T>>);
+  return TupleMaker<std::remove_cvref_t<T>>::Make(std::forward<Args>(args)...);
 };
 
 namespace impl {
@@ -130,14 +149,17 @@ struct IsSafeTuple<T, bool(TrueF(Get<0>(std::move(Get<0>(Tuple{MakeTuple<T>(0, k
   static constexpr bool value = false;
 };
 
-
 } // namespace impl
 
+template <typename T>
+inline constexpr bool kForceEnableTuple = false;
 
+template <typename T, std::size_t N>
+inline constexpr bool kForceEnableTuple<std::array<T, N>> = true;
 
 
 template <typename T>
-concept TupleLike = requires{Get<0>(MakeTuple<T>(42));} && impl::IsSafeTuple<T>::value;
+concept TupleLike = kForceEnableTuple<std::remove_cvref_t<T>> || (requires{Get<0>(MakeTuple<T>(42));} && impl::IsSafeTuple<std::remove_cvref_t<T>>::value);
 
 
 template <TupleLike Tuple>
