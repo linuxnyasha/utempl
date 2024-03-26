@@ -94,18 +94,60 @@ struct TupleMaker<Tuple<Ts...>> {
 };
 template <typename T, std::size_t N>
 struct TupleMaker<std::array<T, N>> {
+  template <typename Arg, typename... Args>
+  static inline constexpr auto Make(Arg&& arg, Args&&... args) 
+      requires (std::same_as<std::remove_cvref_t<Arg>, std::remove_cvref_t<Args>> && ...) {
+    return std::array{std::forward<Arg>(arg), std::forward<Args>(args)...};
+  };
+};
+
+template <typename T>
+struct TupleTieMaker {
+};
+
+template <typename... Ts>
+struct TupleTieMaker<std::tuple<Ts...>> {
   template <typename... Args>
-  static inline constexpr auto Make(Args&&... args) {
-    return std::array{std::forward<Args>(args)...};
+  static inline constexpr auto Make(Args&... args) -> std::tuple<Args...> {
+    return {args...};
+  };
+};
+
+template <typename... Ts>
+struct TupleTieMaker<Tuple<Ts...>> {
+  template <typename... Args>
+  static inline constexpr auto Make(Args&... args) -> Tuple<Args...> {
+    return {args...};
+  };
+};
+
+template <typename T, std::size_t N>
+struct TupleTieMaker<std::array<T, N>> {
+  template <typename Arg, typename... Args>
+  static inline constexpr auto Make(Arg& arg, Args&... args) -> std::array<Arg&, sizeof...(Args) + 1>
+      requires (std::same_as<std::remove_cvref_t<Arg>, std::remove_cvref_t<Args>> && ...)  {
+    return {arg, args...};
   };
 };
 
 
 
 template <typename T = Tuple<>, typename... Args>
-inline constexpr auto MakeTuple(Args&&... args) {
+inline constexpr auto MakeTuple(Args&&... args) 
+    -> decltype(TupleMaker<std::remove_cvref_t<T>>::Make(std::forward<Args>(args)...)) {
   return TupleMaker<std::remove_cvref_t<T>>::Make(std::forward<Args>(args)...);
 };
+
+template <typename T = Tuple<>, typename... Args>
+inline constexpr auto MakeTie(Args&... args) 
+    -> decltype(TupleTieMaker<std::remove_cvref_t<T>>::Make(args...)) {
+  return TupleTieMaker<std::remove_cvref_t<T>>::Make(args...);
+};
+
+
+
+template <typename T>
+concept HasMakeTie = requires(int& arg) {MakeTie<T>(arg);};
 
 namespace impl {
 
@@ -162,11 +204,101 @@ template <typename T>
 concept TupleLike = kForceEnableTuple<std::remove_cvref_t<T>> || (requires{Get<0>(MakeTuple<T>(42));} && impl::IsSafeTuple<std::remove_cvref_t<T>>::value);
 
 
+template <typename F, typename Tuple>
+concept TupleTransformer = requires(F f, Tuple&& tuple) {
+  {f(std::move(tuple))};
+};
+
+template <std::invocable F>
+struct LazyTuple {
+  F f;
+  using ResultType = std::invoke_result_t<F>;
+  std::optional<ResultType> result{std::nullopt};
+  inline constexpr auto Evaluate() {
+    if(!this->result) {
+      this->result.emplace(this->f());
+    };
+  };
+  inline constexpr auto operator()() -> decltype(auto) {
+    this->Evaluate();
+    return *this->result;
+  };
+  inline constexpr auto operator()() const -> decltype(auto) {
+    return this->f();
+  };
+  template <typename T>
+  inline constexpr auto operator==(T&& other) 
+      requires requires(ResultType result){result == std::forward<T>(other);} {
+    return (*this)() == other;
+  };
+
+  template <typename T>
+  inline constexpr auto operator==(T&& other) const 
+      requires requires(ResultType result){result == std::forward<T>(other);} {
+    return (*this)() == other;
+  };
+
+  inline constexpr operator std::invoke_result_t<F>() {
+    return (*this)();
+  };
+  inline constexpr operator std::invoke_result_t<F>() const {
+    return (*this)();
+  };
+  template <std::size_t I>
+  friend inline constexpr auto Get(LazyTuple&& tuple) -> decltype(auto) requires TupleLike<ResultType> {
+    return Get<I>(std::move(tuple)());
+  };
+  template <std::size_t I>
+  friend inline constexpr auto Get(const LazyTuple&& tuple) -> decltype(auto) requires TupleLike<ResultType> {
+    return Get<I>(std::move(tuple)());
+  };
+  template <std::size_t I>
+  friend inline constexpr auto Get(LazyTuple& tuple) -> decltype(auto) requires TupleLike<ResultType> {
+    return Get<I>(tuple());
+  };
+  template <std::size_t I>
+  friend inline constexpr auto Get(const LazyTuple& tuple) -> decltype(auto) requires TupleLike<ResultType> {
+    return Get<I>(tuple());
+  };
+  template <typename FF>
+  inline constexpr auto operator|(FF&& ff) {
+    auto f = [ff = std::forward<FF>(ff), self = (*this)](){
+      return ff(self());
+    };
+    return LazyTuple<decltype(f)>{std::move(f)};
+  };
+};
+template <std::invocable F>
+struct TupleMaker<LazyTuple<F>> {
+  template <typename... Ts>
+  static inline constexpr auto Make(Ts&&... args) 
+      requires requires {TupleMaker<typename LazyTuple<F>::ResultType>::Make(std::forward<Ts>(args)...);} {
+    return TupleMaker<typename LazyTuple<F>::ResultType>::Make(std::forward<Ts>(args)...);
+  };
+};
+
+
+template <TupleLike Tuple, TupleTransformer<Tuple> FF>
+inline constexpr auto operator|(Tuple&& tuple, FF&& f) {
+  return LazyTuple{
+    [tuple = std::forward<Tuple>(tuple), f = std::forward<FF>(f)]() -> decltype(auto) {
+      return f(std::move(tuple));
+    }};
+};
+
+
 template <TupleLike Tuple, typename F>
 inline constexpr auto Unpack(Tuple&& tuple, F&& f) -> decltype(auto) {
   return [&]<std::size_t... Is>(std::index_sequence<Is...>) -> decltype(auto) {
     return f(Get<Is>(std::forward<Tuple>(tuple))...);
   }(std::make_index_sequence<kTupleSize<Tuple>>());
+};
+
+template <typename F>
+inline constexpr auto Unpack(F&& f) {
+  return [f = std::forward<F>(f)]<TupleLike Tuple>(Tuple&& tuple){
+    return Unpack(std::forward<Tuple>(tuple), std::move(f));
+  };
 };
 
 
@@ -179,9 +311,32 @@ inline constexpr auto Transform(Tuple&& container, F&& f, TypeList<R> = {}) {
                 });
 };
 
+template <typename F, typename R = void>
+inline constexpr auto Transform(F&& f, TypeList<R> result = {}) {
+  return [f = std::forward<F>(f), result]<TupleLike Tuple>(Tuple&& tuple){
+    if constexpr(!std::is_same_v<R, void>) {
+      return Transform(std::forward<Tuple>(tuple), std::move(f), result);
+    } else {
+      return Transform(std::forward<Tuple>(tuple), std::move(f));
+    };
+  };
+};
+
+
 template <TupleLike Tuple, typename R = Tuple, typename F>
 inline constexpr auto Map(Tuple&& tuple, F&& f, TypeList<R> result = {}) {
   return Transform(std::forward<Tuple>(tuple), std::forward<F>(f), result);
+};
+
+template <typename F, typename R = void>
+inline constexpr auto Map(F&& f, TypeList<R> result = {}) {
+  return [f = std::forward<F>(f), result]<TupleLike Tuple>(Tuple&& tuple){
+    if constexpr(!std::is_same_v<R, void>) {
+      return Map(std::forward<Tuple>(tuple), std::move(f), result);
+    } else {
+      return Map(std::forward<Tuple>(tuple), std::move(f));
+    };
+  };
 };
 
 template <TupleLike Tuple>
@@ -189,6 +344,12 @@ inline constexpr auto Reverse(Tuple&& tuple) {
   return [&]<auto... Is>(std::index_sequence<Is...>) {
     return MakeTuple<Tuple>(Get<kTupleSize<Tuple> - Is - 1>(std::forward<Tuple>(tuple))...);
   }(std::make_index_sequence<kTupleSize<Tuple>>());
+};
+
+consteval auto Reverse() {
+  return []<TupleLike Tuple>(Tuple&& tuple){
+    return Reverse(std::forward<Tuple>(tuple));
+  };
 };
 
 namespace impl {
@@ -292,6 +453,13 @@ inline constexpr auto FirstOf(Tuple&& tuple, T&& init) requires kEveryElement<st
   );
 };
 
+template <typename T>
+inline constexpr auto FirstOf(T&& init) {
+  return [init = std::forward<T>(init)]<TupleLike Tuple>(Tuple&& tuple) {
+    return FirstOf(std::forward<Tuple>(tuple), std::move(init));
+  };
+}; 
+
 
 template <TupleLike Tuple>
 inline constexpr auto Filter(Tuple&& tuple, auto&& f) {
@@ -307,6 +475,13 @@ inline constexpr auto Filter(Tuple&& tuple, auto&& f) {
     }
   );
 };
+
+template <typename F>
+inline constexpr auto Filter(F&& f) {
+  return [f = std::forward<F>(f)]<TupleLike Tuple>(Tuple&& tuple){
+    return Filter(std::forward<Tuple>(tuple), std::move(f));
+  };
+}; 
 
 template <TupleLike Tuple>
 inline constexpr auto ForEach(Tuple&& tuple, auto&& f) {
@@ -359,4 +534,25 @@ inline constexpr auto Find(Tuple&& tuple, T&& find) -> std::size_t {
     return std::ranges::find(bs, true) - bs.begin();
   });
 };
+
+template <std::size_t N, TupleLike Tuple>
+inline constexpr auto Take(Tuple&& tuple) {
+  if constexpr(std::is_lvalue_reference_v<Tuple> && HasMakeTie<Tuple>) {
+    return [&]<std::size_t... Is>(std::index_sequence<Is...>){ 
+      return MakeTie<Tuple>(Get<Is>(std::forward<Tuple>(tuple))...);
+    }(std::make_index_sequence<N>());   
+  } else {
+    return [&]<std::size_t... Is>(std::index_sequence<Is...>){ 
+      return MakeTuple<Tuple>(Get<Is>(std::forward<Tuple>(tuple))...);
+    }(std::make_index_sequence<N>());   
+  };
+};
+
+template <std::size_t N>
+consteval auto Take() {
+  return [&]<TupleLike Tuple>(Tuple&& tuple){
+    return Take<N>(std::forward<Tuple>(tuple));
+  };
+};
+
 } // namespace utempl
