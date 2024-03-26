@@ -162,12 +162,18 @@ template <typename T>
 concept TupleLike = kForceEnableTuple<std::remove_cvref_t<T>> || (requires{Get<0>(MakeTuple<T>(42));} && impl::IsSafeTuple<std::remove_cvref_t<T>>::value);
 
 
-template <TupleLike Tuple, typename R = Tuple>
-inline constexpr auto Transform(Tuple&& container, auto&& f, TypeList<R> = {}) {
+template <TupleLike Tuple, typename R = Tuple, typename F>
+inline constexpr auto Transform(Tuple&& container, F&& f, TypeList<R> = {}) {
   return [&]<auto... Is>(std::index_sequence<Is...>){
     return MakeTuple<R>(f(Get<Is>(std::forward<Tuple>(container)))...);
   }(std::make_index_sequence<kTupleSize<Tuple>>());
 };
+
+template <TupleLike Tuple, typename R, typename F>
+inline constexpr auto Map(Tuple&& tuple, F&& f, TypeList<R> result = {}) {
+  return Transform(std::forward<Tuple>(tuple), std::forward<F>(f), result);
+};
+
 
 template <TupleLike Tuple>
 inline constexpr auto Reverse(Tuple&& tuple) {
