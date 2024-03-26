@@ -162,19 +162,6 @@ template <typename T>
 concept TupleLike = kForceEnableTuple<std::remove_cvref_t<T>> || (requires{Get<0>(MakeTuple<T>(42));} && impl::IsSafeTuple<std::remove_cvref_t<T>>::value);
 
 
-template <TupleLike Tuple, typename R = Tuple, typename F>
-inline constexpr auto Transform(Tuple&& container, F&& f, TypeList<R> = {}) {
-  return [&]<auto... Is>(std::index_sequence<Is...>){
-    return MakeTuple<R>(f(Get<Is>(std::forward<Tuple>(container)))...);
-  }(std::make_index_sequence<kTupleSize<Tuple>>());
-};
-
-template <TupleLike Tuple, typename R = Tuple, typename F>
-inline constexpr auto Map(Tuple&& tuple, F&& f, TypeList<R> result = {}) {
-  return Transform(std::forward<Tuple>(tuple), std::forward<F>(f), result);
-};
-
-
 template <TupleLike Tuple, typename F>
 inline constexpr auto Unpack(Tuple&& tuple, F&& f) -> decltype(auto) {
   return [&]<std::size_t... Is>(std::index_sequence<Is...>) -> decltype(auto) {
@@ -182,6 +169,20 @@ inline constexpr auto Unpack(Tuple&& tuple, F&& f) -> decltype(auto) {
   }(std::make_index_sequence<kTupleSize<Tuple>>());
 };
 
+
+
+template <TupleLike Tuple, typename R = Tuple, typename F>
+inline constexpr auto Transform(Tuple&& container, F&& f, TypeList<R> = {}) {
+  return Unpack(std::forward<Tuple>(container), 
+                [&]<typename... Ts>(Ts&&... args){
+                  return MakeTuple<R>(f(std::forward<Ts>(args))...);
+                });
+};
+
+template <TupleLike Tuple, typename R = Tuple, typename F>
+inline constexpr auto Map(Tuple&& tuple, F&& f, TypeList<R> result = {}) {
+  return Transform(std::forward<Tuple>(tuple), std::forward<F>(f), result);
+};
 
 template <TupleLike Tuple>
 inline constexpr auto Reverse(Tuple&& tuple) {
@@ -218,13 +219,13 @@ struct LeftFold<T, F> {
 
 template <TupleLike Tuple, typename T, typename F>
 inline constexpr auto LeftFold(Tuple&& tuple, T&& init, F&& f) {
-  return [&]<auto... Is>(std::index_sequence<Is...>){
+  return Unpack(std::forward<Tuple>(tuple), [&]<typename... Ts>(Ts&&... args){
     return (
       impl::LeftFold<std::remove_cvref_t<T>, std::remove_cvref_t<F>>{.data = std::forward<T>(init), .f = std::forward<F>(f)} 
       | ...
-      | impl::LeftFold<std::remove_cvref_t<decltype(Get<Is>(std::forward<Tuple>(tuple)))>>{.data = Get<Is>(std::forward<Tuple>(tuple))}
+      | impl::LeftFold<std::remove_cvref_t<Ts>>{.data = std::forward<Ts>(args)}
     ).data;
-  }(std::make_index_sequence<kTupleSize<Tuple>>());
+  });
 };
 
 
@@ -245,6 +246,13 @@ inline constexpr auto TupleCat(Tuples&&... tuples) requires (sizeof...(tuples) >
       return TupleCat(std::forward<Tup>(tup), std::forward<Tup2>(tup2));
     });
 };
+
+template <TupleLike... Tuples, typename F>
+inline constexpr auto Unpack(Tuples&&... tuples, F&& f) {
+  return Unpack(TupleCat(std::forward<Tuples>(tuples)...), std::forward<F>(f));
+};
+
+
 template <typename... Ts>
 inline constexpr auto Tie(Ts&... args) -> Tuple<Ts&...> {
   return {args...};
@@ -302,9 +310,9 @@ inline constexpr auto Filter(Tuple&& tuple, auto&& f) {
 
 template <TupleLike Tuple>
 inline constexpr auto ForEach(Tuple&& tuple, auto&& f) {
-  [&]<auto... Is>(std::index_sequence<Is...>){
-    (f(Get<Is>(std::forward<Tuple>(tuple))), ...);
-  }(std::make_index_sequence<kTupleSize<Tuple>>());
+  Unpack(std::forward<Tuple>(tuple), [&]<typename... Ts>(Ts&&... args){
+    (f(std::forward<Ts>(args)), ...);
+  });
 };
 
 
@@ -329,7 +337,7 @@ inline constexpr auto Curry(F&& f) -> Curryer<std::remove_cvref_t<F>> {
 
 template <TupleLike Tuple, typename T>
 inline constexpr auto Find(Tuple&& tuple, T&& find) -> std::size_t {
-  return [&]<std::size_t... Is>(std::index_sequence<Is...>) -> std::size_t {
+  return Unpack(std::forward<Tuple>(tuple), [&]<typename... Ts>(Ts&&... args) {
     using Type = std::remove_cvref_t<T>;
     std::array<bool, kTupleSize<Tuple>> bs{Overloaded(
       [&](const Type& element) {
@@ -347,8 +355,8 @@ inline constexpr auto Find(Tuple&& tuple, T&& find) -> std::size_t {
       [](auto&&) {
         return false;
       }
-    )(Get<Is>(std::forward<Tuple>(tuple)))...};
+    )(std::forward<Ts>(args))...};
     return std::ranges::find(bs, true) - bs.begin();
-  }(std::make_index_sequence<kTupleSize<Tuple>>());
+  });
 };
 } // namespace utempl
