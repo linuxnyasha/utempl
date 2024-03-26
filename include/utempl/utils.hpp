@@ -175,6 +175,14 @@ inline constexpr auto Map(Tuple&& tuple, F&& f, TypeList<R> result = {}) {
 };
 
 
+template <TupleLike Tuple, typename F>
+inline constexpr auto Unpack(Tuple&& tuple, F&& f) -> decltype(auto) {
+  return [&]<std::size_t... Is>(std::index_sequence<Is...>) -> decltype(auto) {
+    return f(Get<Is>(std::forward<Tuple>(tuple))...);
+  }(std::make_index_sequence<kTupleSize<Tuple>>());
+};
+
+
 template <TupleLike Tuple>
 inline constexpr auto Reverse(Tuple&& tuple) {
   return [&]<auto... Is>(std::index_sequence<Is...>) {
