@@ -169,7 +169,7 @@ inline constexpr auto Transform(Tuple&& container, F&& f, TypeList<R> = {}) {
   }(std::make_index_sequence<kTupleSize<Tuple>>());
 };
 
-template <TupleLike Tuple, typename R, typename F>
+template <TupleLike Tuple, typename R = Tuple, typename F>
 inline constexpr auto Map(Tuple&& tuple, F&& f, TypeList<R> result = {}) {
   return Transform(std::forward<Tuple>(tuple), std::forward<F>(f), result);
 };
