@@ -555,4 +555,11 @@ consteval auto Take() {
   };
 };
 
+template <TupleLike Tuple, typename T>
+inline constexpr auto operator<<(Tuple&& tuple, T&& t) {
+  return Unpack(std::forward<Tuple>(tuple), [&]<typename... Ts>(Ts&&... args){
+    return MakeTuple<Tuple>(std::forward<Ts>(args)..., std::forward<T>(t));
+  });
+};
+
 } // namespace utempl
