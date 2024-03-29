@@ -7,7 +7,7 @@
 
 auto main() -> int {
   using namespace utempl;
-  TupleLike auto tuple = Tuple{1, 2, 3, 4, 5, 6}
+  constexpr TupleLike auto tuple = Tuple{1, 2, 3, 4, 5, 6}
     | Take<5>()
     | Map([](int arg){return arg + 1;})
     | Map([](int arg) -> float {return arg;})
