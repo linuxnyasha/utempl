@@ -51,6 +51,16 @@ struct ConstexprString {
   inline constexpr bool operator==(std::string_view other) const {
     return static_cast<std::string_view>(*this) == other;
   };
+  inline constexpr bool operator==(const ConstexprString<Size>& other) const {
+    return static_cast<std::string_view>(*this) == static_cast<std::string_view>(other);
+  };
+  template <std::size_t SSize>
+  inline constexpr bool operator==(const ConstexprString<SSize>& other) const {
+    return false;
+  };
+  inline constexpr bool operator==(const std::string& other) const {
+    return static_cast<std::string_view>(*this) == other;
+  };
   template <std::size_t SSize>
   inline constexpr auto operator+(const ConstexprString<SSize>& other) -> ConstexprString<Size + SSize - 1> {
     ConstexprString<Size + SSize - 1> response;
