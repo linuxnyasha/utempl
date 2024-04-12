@@ -389,6 +389,17 @@ inline constexpr auto LeftFold(Tuple&& tuple, T&& init, F&& f) {
   });
 };
 
+template <TupleLike Tuple, typename T, typename F>
+inline constexpr auto Reduce(Tuple&& tuple, T&& init, F&& f) {
+  return LeftFold(std::forward<Tuple>(tuple), std::forward<T>(init), std::forward<F>(f));
+};
+
+template <typename T, typename F>
+inline constexpr auto Reduce(T&& init, F&& f) {
+  return [init = std::forward<T>(init), f = std::forward<F>(f)]<TupleLike Tuple>(Tuple&& tuple){
+    return Reduce(std::forward<Tuple>(tuple), std::move(init), std::move(f));
+  };
+};
 
 
 template <TupleLike Tuple, TupleLike Tuple2>
