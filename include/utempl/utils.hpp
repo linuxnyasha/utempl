@@ -573,4 +573,12 @@ inline constexpr auto operator<<(Tuple&& tuple, T&& t) {
   });
 };
 
+template <std::size_t N, TupleLike Tuple = Tuple<>, typename T>
+inline constexpr auto Generate(T&& value) {
+  return [&]<std::size_t... Is>(std::index_sequence<Is...>){
+    return MakeTuple<Tuple>((std::ignore = Is, value)...);
+  }(std::make_index_sequence<N>());
+};
+
+
 } // namespace utempl
