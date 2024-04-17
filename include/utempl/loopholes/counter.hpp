@@ -24,9 +24,9 @@ consteval auto Counter(std::size_t arg) requires Injected<TagWithTalue<Tag, I>{}
 template <
   typename Tag,
   typename... Ts,
-  auto R = impl::Counter<0, Tag, Ts...>(std::size_t{})
+  std::size_t R = impl::Counter<0, Tag, Ts...>(std::size_t{}) - 1
 >
-consteval auto Counter(auto...) {
+consteval auto Counter(auto...) -> std::size_t {
   return R;
 };
 
