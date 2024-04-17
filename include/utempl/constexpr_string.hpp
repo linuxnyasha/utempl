@@ -1,5 +1,6 @@
 #pragma once
 #include <fmt/format.h>
+#include <algorithm>
 
 namespace utempl {
 template <std::size_t>
