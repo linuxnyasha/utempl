@@ -27,6 +27,7 @@ auto main() -> int {
   constexpr std::array types{kTypeId<int>, kTypeId<void>};
   static_assert(std::is_same_v<GetMetaInfo<types[0]>::Type, int>);
   static_assert(std::is_same_v<GetMetaInfo<types[1]>::Type, void>);
+  static_assert(std::is_same_v<decltype(GetTypeListForTag()), TypeList<int, void>>);
 };
 ```
 
