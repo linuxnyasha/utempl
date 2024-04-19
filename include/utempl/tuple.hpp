@@ -22,14 +22,6 @@ struct TupleHelper<std::index_sequence<Is...>, Ts...> : public impl::TupleLeaf<I
   inline constexpr bool operator==(const TupleHelper&) const = default;
 };
 
-template <typename T>
-struct Process {
-  using type = decltype(Overloaded(
-    []<typename TT>(TT&&) -> std::remove_cvref_t<TT> {},
-    []<std::size_t N>(const char(&)[N]) -> const char* {}
-  )(std::declval<T>()));
-};
-
 } // namespace impl
 
 template <typename... Ts>
@@ -110,7 +102,7 @@ struct Tuple<> {
   };
 };
 template <typename... Ts>
-Tuple(Ts&&...) -> Tuple<typename impl::Process<Ts>::type...>;
+Tuple(Ts&&...) -> Tuple<std::decay_t<Ts>...>;
 
 template <typename... Ts>
 consteval auto ListFromTuple(Tuple<Ts...>) -> TypeList<Ts...> {
