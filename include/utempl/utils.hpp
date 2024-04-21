@@ -2,6 +2,7 @@
 #include <utempl/tuple.hpp>
 #include <utempl/overloaded.hpp>
 #include <utempl/constexpr_string.hpp>
+#include <ranges>
 #include <optional>
 #include <fmt/format.h>
 
