@@ -25,6 +25,19 @@ private:
 template <typename T, typename Tag = impl::Types>
 inline constexpr std::size_t kTypeId = MetaInfo<T, Tag>::kTypeId;
 
+template <
+  typename Tag,
+  typename T,
+  typename... Ts,
+  typename... TTs,
+  std::size_t Id = loopholes::Counter<Tag, T, Ts..., TTs...>(),
+  auto = loopholes::Injector<MetaInfoKey<Id, Tag>{}, TypeList<T>{}>{}
+>
+consteval std::size_t AddTypeToTag(TTs&&...) {
+  return Id;
+};
+
+
 template <std::size_t Id, typename Tag = impl::Types>
 using GetMetaInfo = MetaInfo<typename decltype(Magic(loopholes::Getter<MetaInfoKey<Id, Tag>{}>{}))::Type>;
 
@@ -60,7 +73,9 @@ consteval auto GetTypeListForTag() {
 /*
 static_assert(kTypeId<int> == 0);
 static_assert(kTypeId<void> == 1);
-static_assert(std::is_same_v<decltype(GetTypeListForTag()), TypeList<int, void>>);
+static_assert(AddTypeToTag<impl::Types, void, int>() == 2);
+static_assert(std::is_same_v<decltype(GetTypeListForTag()), TypeList<int, void, void>>);
+
 */
 
 
