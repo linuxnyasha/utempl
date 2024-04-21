@@ -1,6 +1,5 @@
 #pragma once
 #include <utempl/loopholes/counter.hpp>
-#include <array>
 #include <utempl/type_list.hpp>
 
 namespace utempl {

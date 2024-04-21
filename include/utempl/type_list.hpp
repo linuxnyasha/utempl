@@ -3,7 +3,7 @@
 #include <utility>
 #include <array>
 #include <utempl/overloaded.hpp>
-#include <ranges>
+#include <algorithm>
 
 
 namespace utempl {
