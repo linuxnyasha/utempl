@@ -7,15 +7,15 @@ namespace utempl::loopholes {
 namespace impl {
 
 template <typename Tag, auto Value>
-struct TagWithTalue {};
+struct TagWithValue {};
 
-template <auto I = 0, typename Tag, typename... Ts, auto = Injector<TagWithTalue<Tag, I>{}>{}>
+template <auto I = 0, typename Tag, typename... Ts, auto = Injector<TagWithValue<Tag, I>{}>{}>
 constexpr auto Counter(...) {
   return I;
 };
 
 template <auto I = 0, typename Tag, typename... Ts>
-consteval auto Counter(std::size_t arg) requires Injected<TagWithTalue<Tag, I>{}, Ts...> {
+consteval auto Counter(std::size_t arg) requires Injected<TagWithValue<Tag, I>{}, Ts...> {
   return Counter<I + 1, Tag, Ts...>(arg);
 };
 } // namespace impl;
@@ -24,12 +24,14 @@ consteval auto Counter(std::size_t arg) requires Injected<TagWithTalue<Tag, I>{}
 template <
   typename Tag,
   typename... Ts,
-  std::size_t R = impl::Counter<0, Tag, Ts...>(std::size_t{}) - 1
+  std::size_t R = impl::Counter<0, Tag, Ts...>(std::size_t{})
+#if defined __clang__
+  - 1
+#endif
 >
 consteval auto Counter(auto...) -> std::size_t {
   return R;
 };
-
 
 
 } // namespace utempl::loopholes

@@ -1,3 +1,4 @@
+#include <type_traits>
 #pragma once
 
 namespace utempl::loopholes {
@@ -12,8 +13,18 @@ struct Injector {
 };
 
 
-template <auto I, typename...>
-concept Injected = requires{Magic(Getter<I>{});};
+template <auto, typename = void, typename... Ts>
+struct InjectedImpl {
+  static constexpr bool value = false;
+};
+template <auto V, typename... Ts>
+struct InjectedImpl<V, std::void_t<decltype(Magic(Getter<V>{}))>, Ts...> {
+  static constexpr bool value = true;
+};
+
+template <auto I, typename... Ts>
+concept Injected = InjectedImpl<I, void, Ts...>::value;
+
 
 
 
