@@ -8,17 +8,8 @@
 
 namespace utempl {
 
-namespace impl {
-
-struct Caster {
-  constexpr Caster(auto&&) {};
-};
-
-};
-
 template <typename... Ts>
-struct TypeList {
-};
+struct TypeList {};
 
 template <typename T>
 struct TypeList<T> {
@@ -38,7 +29,20 @@ concept IsTypeList = Overloaded(
 )(kType<std::remove_cvref_t<T>>);
 
 
+namespace impl {
 
+template <std::size_t I, typename T>
+struct IndexedType {};
+
+template <typename...>
+struct Caster {};
+
+template <std::size_t... Is, typename... Ts>
+struct Caster<std::index_sequence<Is...>, Ts...> : IndexedType<Is, Ts>... {};
+
+
+
+} // namespace impl
 template <typename... Ts, typename... TTs>
 consteval auto operator==(const TypeList<Ts...>& first, const TypeList<TTs...>& second) -> bool {
   return std::same_as<decltype(first), decltype(second)>;
@@ -49,11 +53,10 @@ consteval auto operator+(const TypeList<Ts...>&, const TypeList<TTs...>&) -> Typ
   return {};
 };
 
-template <std::size_t... Is, typename T>
-consteval auto Get(std::index_sequence<Is...>, decltype(impl::Caster(Is))..., T&& arg, ...) -> T; 
-
 template <std::size_t I, typename... Ts>
-consteval auto Get(const TypeList<Ts...>&) -> decltype(Get(std::make_index_sequence<I>(), std::declval<Ts>()...)) requires (I < sizeof...(Ts));
+consteval auto Get(TypeList<Ts...>) -> decltype(
+  []<typename T>(impl::IndexedType<I, T>&&) -> T {
+}(impl::Caster<std::index_sequence_for<Ts...>, Ts...>{}));
 
 template <typename T, typename... Ts>
 consteval auto Find(TypeList<Ts...>) -> std::size_t {
