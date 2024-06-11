@@ -347,10 +347,10 @@ inline constexpr auto Map(F&& f, TypeList<R> result = {}) {
   };
 };
 
-template <auto Tuple>
+template <auto Tuple, typename To = decltype(Tuple)>
 consteval auto PackConstexprWrapper() {
   return [&]<std::size_t... Is>(std::index_sequence<Is...>) {
-    return MakeTuple<decltype(Tuple)>(kWrapper<Get<Is>(Tuple)>...);
+    return MakeTuple<To>(kWrapper<Get<Is>(Tuple)>...);
   }(std::make_index_sequence<kTupleSize<decltype(Tuple)>>());
 };
 
