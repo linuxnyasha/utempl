@@ -107,6 +107,9 @@ struct TupleMaker<std::array<T, N>> {
       requires (std::same_as<std::remove_cvref_t<Arg>, std::remove_cvref_t<Args>> && ...) {
     return std::array{std::forward<Arg>(arg), std::forward<Args>(args)...};
   };
+  static constexpr auto Make() -> std::array<T, 0> {
+    return {};
+  };
 };
 
 template <typename T>
