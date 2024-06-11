@@ -20,6 +20,10 @@ struct Wrapper {
   };
 };
 
+template <auto Value>
+inline constexpr Wrapper<Value> kWrapper;
+
+
 template <ConstexprString string, typename T = std::size_t>
 consteval auto ParseNumber() -> T {
   T response{};
@@ -334,7 +338,7 @@ inline constexpr auto Map(Tuple&& tuple, F&& f, TypeList<R> result = {}) {
 
 template <typename F, typename R = void>
 inline constexpr auto Map(F&& f, TypeList<R> result = {}) {
-  return [f = std::forward<F>(f), result]<TupleLike Tuple>(Tuple&& tuple){
+  return [f = std::forward<F>(f), result]<TupleLike Tuple>(Tuple&& tuple) {
     if constexpr(!std::is_same_v<R, void>) {
       return Map(std::forward<Tuple>(tuple), std::move(f), result);
     } else {
@@ -343,15 +347,23 @@ inline constexpr auto Map(F&& f, TypeList<R> result = {}) {
   };
 };
 
+template <auto Tuple>
+consteval auto PackConstexprWrapper() {
+  return [&]<std::size_t... Is>(std::index_sequence<Is...>) {
+    return MakeTuple<decltype(Tuple)>(kWrapper<Get<Is>(Tuple)>...);
+  }(std::make_index_sequence<kTupleSize<decltype(Tuple)>>());
+};
+
+
 template <TupleLike Tuple>
 inline constexpr auto Reverse(Tuple&& tuple) {
-  return [&]<auto... Is>(std::index_sequence<Is...>) {
+  return [&]<std::size_t... Is>(std::index_sequence<Is...>) {
     return MakeTuple<Tuple>(Get<kTupleSize<Tuple> - Is - 1>(std::forward<Tuple>(tuple))...);
   }(std::make_index_sequence<kTupleSize<Tuple>>());
 };
 
 consteval auto Reverse() {
-  return []<TupleLike Tuple>(Tuple&& tuple){
+  return []<TupleLike Tuple>(Tuple&& tuple) {
     return Reverse(std::forward<Tuple>(tuple));
   };
 };
