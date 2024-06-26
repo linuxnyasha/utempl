@@ -26,19 +26,19 @@ inline constexpr Wrapper<Value> kWrapper;
 namespace impl {
 
 template <std::size_t N>
-struct kSeq {};
+struct kSeq {
+  template <typename F>
+  friend constexpr auto operator|(F&& f, const kSeq<N>&) {
+    return [&]<std::size_t... Is>(std::index_sequence<Is...>){
+      return std::forward<F>(f)(kWrapper<Is>...);
+    }(std::make_index_sequence<N>());
+  };
+};
 
 } // namespace impl
 
 template <std::size_t N>
 inline constexpr impl::kSeq<N> kSeq;
-
-template <typename F, std::size_t N>
-constexpr auto operator|(F&& f, impl::kSeq<N>) {
-  return [&]<std::size_t... Is>(std::index_sequence<Is...>){
-    return std::forward<F>(f)(kWrapper<Is>...);
-  }(std::make_index_sequence<N>());
-};
 
 
 
