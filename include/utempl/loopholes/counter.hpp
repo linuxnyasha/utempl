@@ -1,22 +1,21 @@
 #pragma once
 #include <utempl/loopholes/core.hpp>
 #include <cstddef>
+#include <tuple>
 
 namespace utempl::loopholes {
 
 namespace impl {
 
-template <typename Tag, auto Value>
+template <typename Tag, std::size_t Value>
 struct TagWithValue {};
 
-template <auto I = 0, typename Tag, typename... Ts, auto = Injector<TagWithValue<Tag, I>{}>{}>
-constexpr auto Counter(...) {
-  return I;
-};
-
-template <auto I = 0, typename Tag, typename... Ts>
-consteval auto Counter(std::size_t arg) requires Injected<TagWithValue<Tag, I>{}, Ts...> {
-  return Counter<I + 1, Tag, Ts...>(arg);
+template <typename Tag, std::size_t I, typename... Ts>
+consteval auto Counter() -> std::size_t {
+  if constexpr(requires{Magic(Getter<TagWithValue<Tag, I>{}>{});}) {
+    return Counter<Tag, I + 1, Ts...>();
+  };
+  return (std::ignore = Injector<TagWithValue<Tag, I>{}, 0>{}, I);
 };
 } // namespace impl;
 
@@ -24,10 +23,7 @@ consteval auto Counter(std::size_t arg) requires Injected<TagWithValue<Tag, I>{}
 template <
   typename Tag,
   typename... Ts,
-  std::size_t R = impl::Counter<0, Tag, Ts...>(std::size_t{})
-#if defined __clang__
-  - 1
-#endif
+  std::size_t R = impl::Counter<Tag, 0, Ts...>()
 >
 consteval auto Counter(auto...) -> std::size_t {
   return R;
