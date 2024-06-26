@@ -23,6 +23,24 @@ struct Wrapper {
 template <auto Value>
 inline constexpr Wrapper<Value> kWrapper;
 
+namespace impl {
+
+template <std::size_t N>
+struct kSeq {};
+
+} // namespace impl
+
+template <std::size_t N>
+inline constexpr impl::kSeq<N> kSeq;
+
+template <typename F, std::size_t N>
+constexpr auto operator|(F&& f, impl::kSeq<N>) {
+  return [&]<std::size_t... Is>(std::index_sequence<Is...>){
+    return std::forward<F>(f)(kWrapper<Is>...);
+  }(std::make_index_sequence<N>());
+};
+
+
 
 template <ConstexprString string, typename T = std::size_t>
 consteval auto ParseNumber() -> T {
@@ -300,9 +318,9 @@ inline constexpr auto operator|(Tuple&& tuple, FF&& f) {
 
 template <TupleLike Tuple, typename F>
 inline constexpr auto Unpack(Tuple&& tuple, F&& f) -> decltype(auto) {
-  return [&]<std::size_t... Is>(std::index_sequence<Is...>) -> decltype(auto) {
-    return f(Get<Is>(std::forward<Tuple>(tuple))...);
-  }(std::make_index_sequence<kTupleSize<Tuple>>());
+  return [&](auto... is) -> decltype(auto) {
+    return f(Get<is>(std::forward<Tuple>(tuple))...);
+  } | kSeq<kTupleSize<Tuple>>;
 };
 
 template <typename F>
@@ -450,10 +468,9 @@ inline constexpr auto Tie(Ts&... args) -> Tuple<Ts&...> {
 };
 
 template <template <typename...> typename F, TupleLike Tuple>
-inline constexpr bool kEveryElement = 
-  []<auto... Is>(std::index_sequence<Is...>){
-    return (F<decltype(Get<Is>(std::declval<Tuple>()))>::value && ...);
-  }(std::make_index_sequence<kTupleSize<Tuple>>());
+inline constexpr bool kEveryElement = [](auto... is) {
+    return (F<std::decay_t<decltype(Get<is>(std::declval<Tuple>()))>>::value && ...);
+  } | kSeq<kTupleSize<Tuple>>;
 
 template <template <typename...> typename F, typename... Ts>
 struct PartialCaller {
@@ -594,9 +611,9 @@ inline constexpr auto operator<<(Tuple&& tuple, T&& t) {
 
 template <std::size_t N, TupleLike Tuple = Tuple<>, typename T>
 inline constexpr auto Generate(T&& value) {
-  return [&]<std::size_t... Is>(std::index_sequence<Is...>){
-    return MakeTuple<Tuple>((std::ignore = Is, value)...);
-  }(std::make_index_sequence<N>());
+  return [&](auto... is) {
+    return MakeTuple<Tuple>((std::ignore = is, value)...);
+  } | kSeq<N>;
 };
 
 
