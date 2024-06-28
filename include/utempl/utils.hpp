@@ -12,10 +12,13 @@ namespace utempl {
 template <auto Value>
 struct Wrapper {
   static constexpr auto kValue = Value;
-  inline constexpr auto operator==(auto&& arg) {
+  inline constexpr auto operator==(auto&& arg) const {
     return arg == Value;
   };
-  consteval operator decltype(Value)() {
+  consteval operator decltype(Value)() const {
+    return Value;
+  };
+  consteval auto operator*() const {
     return Value;
   };
 };
