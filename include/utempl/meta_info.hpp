@@ -70,6 +70,16 @@ consteval auto GetTypeListForTag() {
   return impl::GetTypeListForTag<Tag>(TypeList<Ts...>{});
 };
 
+template <
+  typename Tag,
+  typename... Ts,
+  auto I = utempl::loopholes::CountValue<Tag, Ts...>() - 1
+>
+consteval auto GetCurrentTagType() {
+  return Magic(utempl::loopholes::Getter<MetaInfoKey<I, Tag>{}>());
+};
+
+
 /*
 static_assert(kTypeId<int> == 0);
 static_assert(kTypeId<void> == 1);
