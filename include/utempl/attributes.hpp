@@ -33,7 +33,7 @@ template <
   typename...,
   auto f = []{},
   auto I = loopholes::CountValue<impl::AttributesTag, decltype(f)>(),
-  auto II = (I > 2) ? I - 2 : I - 1,
+  auto II = (I >= 2) ? I - 2 : I - 1,
   typename T = decltype(Magic(loopholes::Getter<MetaInfoKey<II, impl::AttributesTag>{}>{}))::Type,
   auto = AddTypeToTag<impl::AttributesTag, T, decltype(f)>()
 >
