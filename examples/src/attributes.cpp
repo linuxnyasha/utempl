@@ -29,9 +29,9 @@ static_assert(utempl::GetAttributes<SomeStruct>()
 
 struct SomeOtherStruct {
   static_assert(utempl::OpenStruct<SomeOtherStruct>());
-  utempl::FieldAttribute<utempl::FieldType<int>, int> field1;
-  utempl::FieldAttribute<utempl::FieldType<int>> field2;
-  utempl::FieldAttribute<utempl::FieldType<std::string>, void> field3;
+  utempl::FieldAttribute<int, int> field1;
+  utempl::FieldAttribute<int> field2;
+  utempl::FieldAttribute<std::string, void> field3;
   static_assert(utempl::CloseStruct());
 };
 

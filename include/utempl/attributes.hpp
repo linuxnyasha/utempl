@@ -48,12 +48,6 @@ struct NoInfo {
 };
 
 
-template <typename T>
-struct FieldType {
-  using Type = T;
-};
-
-
 namespace impl {
 
 template <typename... Ts>
@@ -74,7 +68,7 @@ template <
   typename Current = decltype(GetCurrentTagType<impl::AttributesTag, decltype(f)>())::Type,
   auto = AddTypeToTag<impl::AttributesCounterTag<Current>, typename FieldAttributeData<Ts...>::Type, decltype(f)>()
 >
-consteval auto FieldAttribute() -> T::Type;
+consteval auto FieldAttribute() -> T;
 
 } // namespace impl
 
