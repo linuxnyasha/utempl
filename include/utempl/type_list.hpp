@@ -64,6 +64,13 @@ consteval auto Find(TypeList<Ts...>) -> std::size_t {
   return std::ranges::find(arr, true) - arr.begin();
 };
 
+template <template <typename...> typename F, typename... Ts>
+consteval auto Find(TypeList<Ts...>) -> std::size_t {
+  std::array<bool, sizeof...(Ts)> arr{F<Ts>::value...};
+  return std::ranges::find(arr, true) - arr.begin();
+};
+
+
 template <typename... Ts>
 consteval auto Reverse(TypeList<Ts...> list) {
   return [&]<auto... Is>(std::index_sequence<Is...>) -> TypeList<decltype(Get<sizeof...(Ts) - Is - 1>(list))...> {
