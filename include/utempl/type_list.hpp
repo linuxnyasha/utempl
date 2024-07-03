@@ -98,4 +98,10 @@ consteval auto FilterTypeList(TypeList<Ts...>, auto&& f) {
 };
 
 
+template <typename... Ts>
+consteval auto Size(TypeList<Ts...>) -> std::size_t {
+  return sizeof...(Ts);
+};
+
+
 } // namespace utempl
