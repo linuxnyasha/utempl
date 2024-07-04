@@ -4,42 +4,42 @@
 namespace utempl {
 
 template <typename T>
-struct Optional {
+struct Optional {  // NOLINT
   bool flag = false;
   union {
     char null;
     T _value;
   };
-  inline constexpr Optional() = default;
-  inline constexpr Optional(const Optional&) = default;
-  inline constexpr Optional(Optional&&) = default;
-  inline constexpr Optional(T&& arg) : _value(std::move(arg)), flag(true) {};
-  inline constexpr Optional(const T& arg) : _value(arg), flag(true) {};
-  inline constexpr Optional(std::nullopt_t) : flag(false), null(0) {};
-  inline constexpr auto has_value() const -> bool {
+  constexpr Optional() = default;
+  constexpr Optional(const Optional&) = default;
+  constexpr Optional(Optional&&) = default;
+  explicit constexpr Optional(T&& arg) : _value(std::move(arg)), flag(true) {};
+  explicit constexpr Optional(const T& arg) : _value(arg), flag(true) {};
+  explicit constexpr Optional(std::nullopt_t) : null(0) {};
+  [[nodiscard]] constexpr auto has_value() const -> bool {
     return this->flag;
   };
-  inline constexpr auto value() -> T& {
+  constexpr auto value() -> T& {
     return this->_value;
   };
-  inline constexpr auto operator*() -> T& {
+  constexpr auto operator*() -> T& {
     return this->value();
   };
-  inline constexpr auto operator->() -> T* {
+  constexpr auto operator->() -> T* {
     return &this->value();
   };
-  inline constexpr auto value() const -> const T& {
+  constexpr auto value() const -> const T& {
     return this->_value;
   };
-  inline constexpr auto operator*() const -> const T& {
+  constexpr auto operator*() const -> const T& {
     return this->value();
   };
-  inline constexpr auto operator->() const -> const T* {
+  constexpr auto operator->() const -> const T* {
     return &this->value();
   };
-  inline constexpr explicit operator bool() const {
+  constexpr explicit operator bool() const {
     return this->has_value();
   };
 };
 
-} // namespace utempl
+}  // namespace utempl

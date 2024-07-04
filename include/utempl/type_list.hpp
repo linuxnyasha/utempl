@@ -1,10 +1,9 @@
 #pragma once
-#include <concepts>
-#include <utility>
-#include <array>
-#include <utempl/overloaded.hpp>
 #include <algorithm>
-
+#include <array>
+#include <concepts>
+#include <utempl/overloaded.hpp>
+#include <utility>
 
 namespace utempl {
 
@@ -24,10 +23,12 @@ inline constexpr auto kTypeList = TypeList<Ts...>{};
 
 template <typename T>
 concept IsTypeList = Overloaded(
-  []<typename... Ts>(TypeList<TypeList<Ts...>>) {return true;},
-  [](auto&&) {return false;}
-)(kType<std::remove_cvref_t<T>>);
-
+    []<typename... Ts>(TypeList<TypeList<Ts...>>) {
+      return true;
+    },
+    [](auto&&) {
+      return false;
+    })(kType<std::remove_cvref_t<T>>);
 
 namespace impl {
 
@@ -40,9 +41,7 @@ struct Caster {};
 template <std::size_t... Is, typename... Ts>
 struct Caster<std::index_sequence<Is...>, Ts...> : IndexedType<Is, Ts>... {};
 
-
-
-} // namespace impl
+}  // namespace impl
 template <typename... Ts, typename... TTs>
 consteval auto operator==(const TypeList<Ts...>& first, const TypeList<TTs...>& second) -> bool {
   return std::same_as<decltype(first), decltype(second)>;
@@ -54,8 +53,7 @@ consteval auto operator+(const TypeList<Ts...>&, const TypeList<TTs...>&) -> Typ
 };
 
 template <std::size_t I, typename... Ts>
-consteval auto Get(TypeList<Ts...>) -> decltype(
-  []<typename T>(impl::IndexedType<I, T>&&) -> T {
+consteval auto Get(TypeList<Ts...>) -> decltype([]<typename T>(impl::IndexedType<I, T>&&) -> T {
 }(impl::Caster<std::index_sequence_for<Ts...>, Ts...>{}));
 
 template <typename T, typename... Ts>
@@ -70,7 +68,6 @@ consteval auto Find(TypeList<Ts...>) -> std::size_t {
   return std::ranges::find(arr, true) - arr.begin();
 };
 
-
 template <typename... Ts>
 consteval auto Reverse(TypeList<Ts...> list) {
   return [&]<auto... Is>(std::index_sequence<Is...>) -> TypeList<decltype(Get<sizeof...(Ts) - Is - 1>(list))...> {
@@ -84,24 +81,20 @@ consteval auto Transform(TypeList<Ts...>, auto&& f) -> TypeList<decltype(f(TypeL
 };
 template <typename... Ts>
 consteval auto FilterTypeList(TypeList<Ts...>, auto&& f) {
-  return (
-    (kTypeList<> 
-    + [](auto&& list) {
-        if constexpr(decltype(f(list))::kValue) {
-          return list;
-        } else {
-          return kTypeList<>;
-        }
-      }(kType<Ts>)
-    )
-  + ...);
+  return ((kTypeList<> +
+           [](auto&& list) {
+             if constexpr(decltype(f(list))::kValue) {
+               return list;
+             } else {
+               return kTypeList<>;
+             }
+           }(kType<Ts>)) +
+          ...);
 };
-
 
 template <typename... Ts>
 consteval auto Size(TypeList<Ts...>) -> std::size_t {
   return sizeof...(Ts);
 };
 
-
-} // namespace utempl
+}  // namespace utempl

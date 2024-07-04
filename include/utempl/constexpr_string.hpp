@@ -1,18 +1,19 @@
 #pragma once
 #include <fmt/format.h>
+
 #include <algorithm>
 
 namespace utempl {
 template <std::size_t>
 struct ConstexprString;
-} // namespace utempl
+}  // namespace utempl
 
 template <std::size_t Size>
 struct fmt::formatter<utempl::ConstexprString<Size>> : public fmt::formatter<std::string_view> {
   constexpr auto parse(format_parse_context& ctx) const {
     return ctx.begin();
   };
-  inline constexpr auto format(const utempl::ConstexprString<Size>& str, auto& ctx) const {
+  constexpr auto format(const utempl::ConstexprString<Size>& str, auto& ctx) const {
     return fmt::formatter<std::string_view>::format({str.begin()}, ctx);
   };
 };
@@ -22,75 +23,73 @@ namespace utempl {
 template <std::size_t Size>
 struct ConstexprString {
   std::array<char, Size> data;
-  inline constexpr auto begin() -> char* {
+  constexpr auto begin() -> char* {
     return this->data.begin();
   };
-  inline constexpr auto begin() const -> const char* {
+  [[nodiscard]] constexpr auto begin() const -> const char* {
     return this->data.begin();
   };
-  inline constexpr auto end() -> char* {
+  [[nodiscard]] constexpr auto end() -> char* {
     return this->data.end();
   };
-  inline constexpr auto end() const -> const char* {
+  [[nodiscard]] constexpr auto end() const -> const char* {
     return this->data.end();
   };
   static constexpr auto kSize = Size == 0 ? 0 : Size - 1;
-  inline constexpr ConstexprString() = default;
-  inline constexpr ConstexprString(const char (&data)[Size]) : data{} {
+  explicit constexpr ConstexprString() = default;
+  constexpr ConstexprString(const char (&data)[Size]) : data{} {  // NOLINT
     std::ranges::copy_n(data, Size, this->data.begin());
   };
-  inline constexpr ConstexprString(std::string data) : data{} {
+  explicit constexpr ConstexprString(std::string data) : data{} {
     std::ranges::copy_n(data.begin(), Size, this->data.begin());
   };
-  inline constexpr ConstexprString(std::array<char, Size> data) : data(std::move(data)) {};
-  inline constexpr auto size() const {
+  explicit constexpr ConstexprString(std::array<char, Size> data) : data(std::move(data)) {};
+  constexpr auto size() const {
     return Size == 0 ? 0 : Size - 1;
   };
-  inline constexpr operator std::string_view() const & {
+  constexpr operator std::string_view() const& {  // NOLINT
     return {this->begin()};
   };
-  inline constexpr bool operator==(std::string_view other) const {
+  constexpr auto operator==(std::string_view other) const -> bool {
     return static_cast<std::string_view>(*this) == other;
   };
-  inline constexpr bool operator==(const ConstexprString<Size>& other) const {
+  constexpr auto operator==(const ConstexprString<Size>& other) const {
     return static_cast<std::string_view>(*this) == static_cast<std::string_view>(other);
   };
   template <std::size_t SSize>
-  inline constexpr bool operator==(const ConstexprString<SSize>& other) const {
+  constexpr auto operator==(const ConstexprString<SSize>& other) const -> bool {
     return false;
   };
-  inline constexpr bool operator==(const std::string& other) const {
+  constexpr auto operator==(const std::string& other) const -> bool {
     return static_cast<std::string_view>(*this) == other;
   };
   template <std::size_t SSize>
-  inline constexpr auto operator+(const ConstexprString<SSize>& other) -> ConstexprString<Size + SSize - 1> {
+  constexpr auto operator+(const ConstexprString<SSize>& other) -> ConstexprString<Size + SSize - 1> {
     ConstexprString<Size + SSize - 1> response;
     std::ranges::copy_n(this->begin(), Size - 1, response.begin());
     std::ranges::copy_n(other.begin(), SSize, response.begin() + Size - 1);
     return response;
   };
-  inline constexpr ConstexprString(const ConstexprString&) = default; 
-  inline constexpr ConstexprString(ConstexprString&&) = default; 
+  constexpr ConstexprString(const ConstexprString&) = default;
+  constexpr ConstexprString(ConstexprString&&) = default;
 };
 
 template <std::size_t N>
-inline constexpr auto operator<<(std::ostream& stream, const ConstexprString<N>& str) -> std::ostream& {
+constexpr auto operator<<(std::ostream& stream, const ConstexprString<N>& str) -> std::ostream& {
   stream << static_cast<std::string_view>(str);
   return stream;
 };
 
 template <std::size_t Count>
-inline constexpr auto CreateStringWith(char c) {
-  ConstexprString<Count + 1> str = {};
+constexpr auto CreateStringWith(char c) {
+  ConstexprString<Count + 1> str{};
   for(std::size_t i = 0; i < Count; i++) {
     str.data[i] = c;
-  }; 
+  };
   str.data[Count] = '\0';
   return str;
 };
 
-
 template <std::size_t Size>
-ConstexprString(const char (&data)[Size]) -> ConstexprString<Size>;
-} // namespace utempl
-
+ConstexprString(const char (&data)[Size]) -> ConstexprString<Size>;  // NOLINT
+}  // namespace utempl

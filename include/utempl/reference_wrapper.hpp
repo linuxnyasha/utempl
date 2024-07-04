@@ -6,10 +6,10 @@ struct ReferenceWrapper;
 
 template <typename T>
 struct ReferenceWrapper<T&&> {
-  inline constexpr auto operator*() -> T& {
+  constexpr auto operator*() -> T& {
     return this->value;
   };
-  inline constexpr auto operator->() -> T* {
+  constexpr auto operator->() -> T* {
     return &this->value;
   };
   T&& value;
@@ -17,10 +17,10 @@ struct ReferenceWrapper<T&&> {
 
 template <typename T>
 struct ReferenceWrapper<const T&> {
-  inline constexpr auto operator*() -> const T& {
+  constexpr auto operator*() -> const T& {
     return this->value;
   };
-  inline constexpr auto operator->() -> const T* {
+  constexpr auto operator->() -> const T* {
     return &this->value;
   };
   const T& value;
@@ -28,14 +28,13 @@ struct ReferenceWrapper<const T&> {
 
 template <typename T>
 struct ReferenceWrapper<T&> {
-
-  inline constexpr auto operator*() -> T& {
+  constexpr auto operator*() -> T& {
     return this->value;
   };
-  inline constexpr auto operator->() -> T* {
+  constexpr auto operator->() -> T* {
     return &this->value;
   };
   T& value;
 };
 
-} // namespace utempl
+}  // namespace utempl

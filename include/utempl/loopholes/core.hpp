@@ -9,9 +9,10 @@ struct Getter {
 };
 template <auto I, auto Value = 0>
 struct Injector {
-  friend constexpr auto Magic(Getter<I>) {return Value;};
+  friend constexpr auto Magic(Getter<I>) {
+    return Value;
+  };
 };
-
 
 template <auto, typename = void, typename... Ts>
 struct InjectedImpl {
@@ -25,7 +26,4 @@ struct InjectedImpl<V, std::void_t<decltype(Magic(Getter<V>{}))>, Ts...> {
 template <auto I, typename... Ts>
 concept Injected = InjectedImpl<I, void, Ts...>::value;
 
-
-
-
-} // namespace utempl::loopholes
+}  // namespace utempl::loopholes

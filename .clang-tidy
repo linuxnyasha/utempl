@@ -1,0 +1,1 @@
+Checks: '-*,google-*,cppcoreguidelines-*,-cppcoreguidelines-c-copy-assignment-signature,-cppcoreguidelines-special-member-functions,-cppcoreguidelines-avoid-const-or-ref-data-members,modernize-*'

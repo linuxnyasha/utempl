@@ -1,0 +1,13 @@
+BasedOnStyle: Google
+IndentWidth: 2
+ColumnLimit: 140
+AllowShortIfStatementsOnASingleLine: false
+AllowShortLoopsOnASingleLine: false
+BreakConstructorInitializers: AfterColon
+AlwaysBreakAfterReturnType: None
+SpaceBeforeParens: Never
+AllowShortFunctionsOnASingleLine: None
+AllowShortLambdasOnASingleLine: Empty
+BinPackArguments: false
+BinPackParameters: false
+AlwaysBreakTemplateDeclarations: true
