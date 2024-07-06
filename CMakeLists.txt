@@ -36,6 +36,9 @@ cmake_policy(SET CMP0079 NEW)
 
 include(GNUInstallDirs)
 add_library(utempl INTERFACE)
+
+add_library(utempl::utempl ALIAS utempl)
+
 target_include_directories(
   utempl
   INTERFACE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
