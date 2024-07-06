@@ -101,6 +101,6 @@ if(ENABLE_EXAMPLES)
       target_link_libraries(${EXAMPLE_NAME} utempl)
       set_property(TARGET ${EXAMPLE_NAME} PROPERTY CXX_STANDARD 20)
       set_target_properties(${EXAMPLE_NAME} PROPERTIES
-          RUNTIME_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/examples/")
+          RUNTIME_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/examples/output")
 endforeach()
 endif()
