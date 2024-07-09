@@ -597,4 +597,13 @@ inline constexpr auto Generate(T&& value) {
   } | kSeq<N>;
 };
 
+template <TupleLike Tuple>
+constexpr auto Enumerate(Tuple&& tuple) {
+  return Unpack(std::forward<Tuple>(tuple), [](auto&&... vs) {
+    return [&](auto... is) {
+      return MakeTuple<Tuple>(std::pair{*is, std::forward<decltype(vs)>(vs)}...);
+    } | kSeq<sizeof...(vs)>;
+  });
+};
+
 }  // namespace utempl

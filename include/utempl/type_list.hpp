@@ -97,4 +97,23 @@ consteval auto Size(TypeList<Ts...>) -> std::size_t {
   return sizeof...(Ts);
 };
 
+template <std::size_t N, std::size_t From = 0, typename... Ts>
+consteval auto TakeFrom(TypeList<Ts...> list)
+  requires(N + From <= sizeof...(Ts))
+{
+  return [&]<std::size_t... Is>(std::index_sequence<Is...>) -> TypeList<decltype(Get<Is + From>(list))...> {
+    return {};
+  }(std::make_index_sequence<N>());
+};
+
+template <typename T, std::size_t N, typename... Ts>
+consteval auto PushTo(TypeList<Ts...> list) {
+  return TakeFrom<N>(list) + kType<T> + TakeFrom<sizeof...(Ts) - N, N>(list);
+};
+
+template <std::size_t N, typename... Ts>
+consteval auto Erase(TypeList<Ts...> list) {
+  return TakeFrom<N>(list) + TakeFrom<sizeof...(Ts) - N - 1, N + 1>(list);
+};
+
 }  // namespace utempl
