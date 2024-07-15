@@ -644,10 +644,13 @@ constexpr auto Enumerate(Tuple&& tuple) {
 };
 
 template <typename T>
-  requires requires { T{}; }
+  requires std::same_as<T, void> || requires { T{}; }
 constexpr auto kDefaultCreator = [] {
   return T{};
 };
+
+template <>
+constexpr auto kDefaultCreator<void> = [] {};
 
 namespace impl {
 
@@ -657,29 +660,39 @@ concept ComparableSwitchConcept = decltype(Unpack(std::declval<KeysTuple>(), []<
 }))::kValue;
 
 template <typename F, typename ValuesTuple, typename R>
-concept CallableSwitchConcept = decltype(Unpack(std::declval<ValuesTuple>(), []<typename... Ts>(Ts&&...) {
-  return kWrapper<(std::convertible_to<std::invoke_result_t<F, Ts>, std::optional<R>> && ...)>;
-}))::kValue;
+concept CallableSwitchConcept = std::same_as<R, void> || decltype(Unpack(std::declval<ValuesTuple>(), []<typename... Ts>(Ts&&...) {
+                                  return kWrapper<(std::convertible_to<std::invoke_result_t<F, Ts>, std::optional<R>> && ...)>;
+                                }))::kValue;
 
 }  // namespace impl
 
-template <std::move_constructible R,
+template <typename R = void,
           TupleLike KeysTuple,
           TupleLike ValuesTuple,
           impl::ComparableSwitchConcept<KeysTuple> Key,
           impl::CallableSwitchConcept<ValuesTuple, R> F,
           std::invocable Default = decltype(kDefaultCreator<R>)>
-constexpr auto Switch(KeysTuple&& keysTuple, ValuesTuple&& valuesTuple, Key&& key, F&& f, Default&& def = {}) {
+constexpr auto Switch(KeysTuple&& keysTuple, ValuesTuple&& valuesTuple, Key&& key, F&& f, Default&& def = {}) -> R
+  requires std::move_constructible<R> || std::same_as<R, void>
+{
   return Unpack(std::forward<KeysTuple>(keysTuple), [&]<typename... Keys>(Keys&&... keys) {
     return Unpack(std::forward<ValuesTuple>(valuesTuple), [&]<typename... Values>(Values&&... values) {
-      return *FirstOf(Tuple{[&] {
-                        return std::forward<Keys>(keys) == std::forward<Key>(key) ? std::forward<F>(f)(std::forward<Values>(values))
-                                                                                  : std::optional<R>{};
-                      }...},
-                      std::optional<R>{})
-                  .or_else([&] -> std::optional<R> {
-                    return std::forward<Default>(def)();
-                  });
+      if constexpr(std::same_as<R, void>) {
+        FirstOf(Tuple{[&] {
+                  return std::forward<Keys>(keys) == std::forward<Key>(key) ? (std::forward<F>(f)(std::forward<Values>(values)), true)
+                                                                            : false;
+                }...},
+                false);
+      } else {
+        return *FirstOf(Tuple{[&] {
+                          return std::forward<Keys>(keys) == std::forward<Key>(key) ? std::forward<F>(f)(std::forward<Values>(values))
+                                                                                    : std::optional<R>{};
+                        }...},
+                        std::optional<R>{})
+                    .or_else([&] -> std::optional<R> {
+                      return std::forward<Default>(def)();
+                    });
+      };
     });
   });
 };

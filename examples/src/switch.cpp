@@ -20,4 +20,11 @@ auto main() -> int {
                     [] {
                       return 42;
                     }) == 42);
+  static_assert([] {
+    int response{};
+    utempl::Switch(utempl::Tuple{2, 1, 0}, utempl::Tuple{0, 1, 2}, 0, [&](int value) {
+      response = value + 1;
+    });
+    return response;
+  }() == 3);
 };
