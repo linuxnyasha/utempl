@@ -606,4 +606,30 @@ constexpr auto Enumerate(Tuple&& tuple) {
   });
 };
 
+template <typename T>
+constexpr auto kDefaultCreator = [] {
+  return T{};
+};
+
+template <typename R,
+          TupleLike KeysTuple,
+          TupleLike ValuesTuple,
+          typename Key,
+          typename F,
+          std::invocable Default = decltype(kDefaultCreator<R>)>
+constexpr auto Switch(KeysTuple&& keysTuple, ValuesTuple&& valuesTuple, Key&& key, F&& f, Default&& def = {}) {
+  return Unpack(std::forward<KeysTuple>(keysTuple), [&]<typename... Keys>(Keys&&... keys) {
+    return Unpack(std::forward<ValuesTuple>(valuesTuple), [&]<typename... Values>(Values&&... values) {
+      return *FirstOf(Tuple{[&] {
+                        return std::forward<Keys>(keys) == std::forward<Key>(key) ? std::forward<F>(f)(std::forward<Values>(values))
+                                                                                  : std::optional<R>{};
+                      }...},
+                      std::optional<R>{})
+                  .or_else([&] -> std::optional<R> {
+                    return std::forward<Default>(def)();
+                  });
+    });
+  });
+};
+
 }  // namespace utempl
