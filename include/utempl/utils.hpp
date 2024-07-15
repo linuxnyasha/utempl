@@ -683,6 +683,17 @@ concept CallableSwitchConcept = std::same_as<R, void> || decltype(Unpack(std::de
                                   }() && ...)>;
                                 }))::kValue;
 
+template <typename F, typename R>
+concept DefaultSwitchConcept = [] {
+  if constexpr(std::invocable<F>) {
+    if constexpr(!std::same_as<R, void>) {
+      return std::convertible_to<std::invoke_result_t<F>, std::optional<R>>;
+    };
+    return true;
+  };
+  return false;
+}();
+
 }  // namespace impl
 
 template <typename R = void,
@@ -690,7 +701,7 @@ template <typename R = void,
           TupleLike ValuesTuple,
           impl::ComparableSwitchConcept<KeysTuple> Key,
           impl::CallableSwitchConcept<ValuesTuple, R> F,
-          std::invocable Default = decltype(kDefaultCreator<R>)>
+          impl::DefaultSwitchConcept<R> Default = decltype(kDefaultCreator<R>)>
 constexpr auto Switch(KeysTuple&& keysTuple, ValuesTuple&& valuesTuple, Key&& key, F&& f, Default&& def = {}) -> R
   requires(std::move_constructible<R> || std::same_as<R, void>) && (kTupleSize<KeysTuple> == kTupleSize<ValuesTuple>)
 {
