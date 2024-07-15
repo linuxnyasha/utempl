@@ -27,4 +27,18 @@ auto main() -> int {
     });
     return response;
   }() == 3);
+  static_assert([] {
+    int response{};
+    utempl::Switch(
+        utempl::Tuple{2, 1, 0},
+        utempl::Tuple{0, 1, 2},
+        3,
+        [&](int value) {
+          response = value + 1;
+        },
+        [&] {
+          response = 3;
+        });
+    return response;
+  }() == 3);
 };
