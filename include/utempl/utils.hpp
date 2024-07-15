@@ -317,9 +317,12 @@ concept UnpackConcept = []<std::size_t... Is>(std::index_sequence<Is...>) {
 
 template <typename F, typename Tuple>
 concept TransformConcept = []<std::size_t... Is>(std::index_sequence<Is...>) {
-  return ((std::invocable<F, decltype(Get<Is>(std::declval<Tuple>()))> &&
-           !std::same_as<std::invoke_result_t<F, decltype(Get<Is>(std::declval<Tuple>()))>, void>) &&
-          ...);
+  return ([] {
+    if constexpr(std::invocable<F, decltype(Get<Is>(std::declval<Tuple>()))>) {
+      return !std::same_as<std::invoke_result_t<F, decltype(Get<Is>(std::declval<Tuple>()))>, void>;
+    };
+    return false;
+  }() && ...);
 }(std::make_index_sequence<kTupleSize<Tuple>>());
 
 template <typename F, typename Tuple>
@@ -422,7 +425,12 @@ struct LeftFold<T, F> {
 
 template <typename F, typename T, typename Tuple>
 concept LeftFoldConcept = decltype(Unpack(std::declval<Tuple>(), []<typename... Ts>(Ts&&...) {
-  return kWrapper<(std::convertible_to<std::invoke_result_t<F, T, Ts>, T> && ...)>;
+  return kWrapper<([] {
+    if constexpr(std::invocable<F, T, Ts>) {
+      return std::convertible_to<std::invoke_result_t<F, T, Ts>, T>;
+    };
+    return false;
+  }() && ...)>;
 }))::kValue;
 
 }  // namespace impl
@@ -518,7 +526,11 @@ namespace impl {
 
 template <typename F, typename Tuple>
 concept FilterConcept = decltype(Unpack(std::declval<Tuple>(), []<typename... Ts>(Ts&&...) {
-  return kWrapper<((std::invocable<F, Ts> && std::convertible_to<std::invoke_result_t<F, Ts>, bool>) && ...)>;
+  return kWrapper<([] {
+    if constexpr(std::invocable<F, Ts>) {
+      return std::convertible_to<std::invoke_result_t<F, Ts>, bool>;
+    };
+  }() && ...)>;
 }))::kValue;
 
 }  // namespace impl
@@ -661,7 +673,14 @@ concept ComparableSwitchConcept = decltype(Unpack(std::declval<KeysTuple>(), []<
 
 template <typename F, typename ValuesTuple, typename R>
 concept CallableSwitchConcept = std::same_as<R, void> || decltype(Unpack(std::declval<ValuesTuple>(), []<typename... Ts>(Ts&&...) {
-                                  return kWrapper<(std::convertible_to<std::invoke_result_t<F, Ts>, std::optional<R>> && ...)>;
+                                  return kWrapper<([] {
+                                    if constexpr(std::invocable<F, Ts>) {
+                                      if constexpr(!std::same_as<std::invoke_result_t<F, Ts>, void>) {
+                                        return std::convertible_to<std::invoke_result_t<F, Ts>, std::optional<R>>;
+                                      };
+                                    };
+                                    return false;
+                                  }() && ...)>;
                                 }))::kValue;
 
 }  // namespace impl
@@ -673,7 +692,7 @@ template <typename R = void,
           impl::CallableSwitchConcept<ValuesTuple, R> F,
           std::invocable Default = decltype(kDefaultCreator<R>)>
 constexpr auto Switch(KeysTuple&& keysTuple, ValuesTuple&& valuesTuple, Key&& key, F&& f, Default&& def = {}) -> R
-  requires std::move_constructible<R> || std::same_as<R, void>
+  requires(std::move_constructible<R> || std::same_as<R, void>) && (kTupleSize<KeysTuple> == kTupleSize<ValuesTuple>)
 {
   return Unpack(std::forward<KeysTuple>(keysTuple), [&]<typename... Keys>(Keys&&... keys) {
     return Unpack(std::forward<ValuesTuple>(valuesTuple), [&]<typename... Values>(Values&&... values) {
@@ -682,7 +701,13 @@ constexpr auto Switch(KeysTuple&& keysTuple, ValuesTuple&& valuesTuple, Key&& ke
                   return std::forward<Keys>(keys) == std::forward<Key>(key) ? (std::forward<F>(f)(std::forward<Values>(values)), true)
                                                                             : false;
                 }...},
-                false);
+                false)
+            ? void(std::ignore)
+            : [&] {
+                if constexpr(!std::same_as<Default, decltype(kDefaultCreator<R>)>) {
+                  std::forward<Default>(def)();
+                };
+              }();
       } else {
         return *FirstOf(Tuple{[&] {
                           return std::forward<Keys>(keys) == std::forward<Key>(key) ? std::forward<F>(f)(std::forward<Values>(values))
