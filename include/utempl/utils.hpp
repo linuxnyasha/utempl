@@ -40,6 +40,19 @@ struct kSeq {
 
 }  // namespace impl
 
+template <typename From, typename To>
+concept ImplicitConvertibleTo = std::same_as<From, To> || requires(From from) { [](To) {}(from); };
+
+template <typename F, typename Sig>
+concept Function = []<typename R, typename... Ts>(TypeList<R(Ts...)>) {
+  if constexpr(std::invocable<F, Ts...>) {
+    return std::same_as<R, void> || ImplicitConvertibleTo<std::invoke_result_t<F, Ts...>, R>;
+  };
+  return false;
+}(kType<Sig>);
+
+static_assert(Function<decltype([]() {}), void()>);
+
 template <std::size_t N>
 inline constexpr impl::kSeq<N> kSeq;
 
@@ -425,12 +438,7 @@ struct LeftFold<T, F> {
 
 template <typename F, typename T, typename Tuple>
 concept LeftFoldConcept = decltype(Unpack(std::declval<Tuple>(), []<typename... Ts>(Ts&&...) {
-  return kWrapper<([] {
-    if constexpr(std::invocable<F, T, Ts>) {
-      return std::convertible_to<std::invoke_result_t<F, T, Ts>, T>;
-    };
-    return false;
-  }() && ...)>;
+  return kWrapper<(Function<F, T(T, Ts)> && ...)>;
 }))::kValue;
 
 }  // namespace impl
@@ -526,11 +534,7 @@ namespace impl {
 
 template <typename F, typename Tuple>
 concept FilterConcept = decltype(Unpack(std::declval<Tuple>(), []<typename... Ts>(Ts&&...) {
-  return kWrapper<([] {
-    if constexpr(std::invocable<F, Ts>) {
-      return std::convertible_to<std::invoke_result_t<F, Ts>, bool>;
-    };
-  }() && ...)>;
+  return kWrapper<(Function<F, bool(Ts)> && ...)>;
 }))::kValue;
 
 }  // namespace impl
@@ -673,26 +677,8 @@ concept ComparableSwitchConcept = decltype(Unpack(std::declval<KeysTuple>(), []<
 
 template <typename F, typename ValuesTuple, typename R>
 concept CallableSwitchConcept = std::same_as<R, void> || decltype(Unpack(std::declval<ValuesTuple>(), []<typename... Ts>(Ts&&...) {
-                                  return kWrapper<([] {
-                                    if constexpr(std::invocable<F, Ts>) {
-                                      if constexpr(!std::same_as<std::invoke_result_t<F, Ts>, void>) {
-                                        return std::convertible_to<std::invoke_result_t<F, Ts>, std::optional<R>>;
-                                      };
-                                    };
-                                    return false;
-                                  }() && ...)>;
+                                  return kWrapper<(Function<F, std::optional<R>(Ts)> && ...)>;
                                 }))::kValue;
-
-template <typename F, typename R>
-concept DefaultSwitchConcept = [] {
-  if constexpr(std::invocable<F>) {
-    if constexpr(!std::same_as<R, void>) {
-      return std::convertible_to<std::invoke_result_t<F>, std::optional<R>>;
-    };
-    return true;
-  };
-  return false;
-}();
 
 }  // namespace impl
 
@@ -701,7 +687,7 @@ template <typename R = void,
           TupleLike ValuesTuple,
           impl::ComparableSwitchConcept<KeysTuple> Key,
           impl::CallableSwitchConcept<ValuesTuple, R> F,
-          impl::DefaultSwitchConcept<R> Default = decltype(kDefaultCreator<R>)>
+          Function<R()> Default = decltype(kDefaultCreator<R>)>
 constexpr auto Switch(KeysTuple&& keysTuple, ValuesTuple&& valuesTuple, Key&& key, F&& f, Default&& def = {}) -> R
   requires(std::move_constructible<R> || std::same_as<R, void>) && (kTupleSize<KeysTuple> == kTupleSize<ValuesTuple>)
 {
