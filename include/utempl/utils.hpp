@@ -733,4 +733,10 @@ constexpr auto Switch(KeysTuple&& keysTuple, ValuesTuple&& valuesTuple, Key&& ke
   });
 };
 
+template <std::size_t N, typename R = Tuple<>>
+consteval auto GetIndexesTuple() {
+  return [](auto... is) {
+    return MakeTuple<R>(*is...);
+  } | kSeq<N>;
+};
 }  // namespace utempl
