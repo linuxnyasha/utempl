@@ -739,4 +739,10 @@ consteval auto GetIndexesTuple() {
     return MakeTuple<R>(*is...);
   } | kSeq<N>;
 };
+
+template <typename R = Tuple<>, typename... Ts>
+consteval auto GetTuple(TypeList<Ts...>, TypeList<R> = {}) {
+  return MakeTuple<R>(kType<Ts>...);
+};
+
 }  // namespace utempl
