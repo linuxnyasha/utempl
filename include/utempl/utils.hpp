@@ -436,9 +436,30 @@ struct LeftFold<T, F> {
   };
 };
 
+struct LeftFoldIgnorer {
+  static constexpr bool value = false;
+  consteval auto operator|(auto&&) const -> LeftFoldIgnorer {
+    return {};
+  };
+};
+
+template <typename F, typename T>
+struct LeftFoldIsOk {
+  static constexpr bool value = true;
+  template <typename TT>
+  consteval auto operator|(LeftFoldIsOk<F, TT>&& other) -> LeftFoldIsOk<F, std::invoke_result_t<F, T, TT>>
+    requires Function<F, void(T, TT)>
+  {
+    return {};
+  };
+  consteval auto operator|(auto&&) -> LeftFoldIgnorer {
+    return {};
+  };
+};
+
 template <typename F, typename T, typename Tuple>
 concept LeftFoldConcept = decltype(Unpack(std::declval<Tuple>(), []<typename... Ts>(Ts&&...) {
-  return kWrapper<(Function<F, T(T, Ts)> && ...)>;
+  return kWrapper<decltype((LeftFoldIsOk<F, T>{} | ... | LeftFoldIsOk<F, Ts>{}))::value>;
 }))::kValue;
 
 }  // namespace impl
