@@ -3,7 +3,7 @@
 ## Features
 ### Ranges Like Interface For TupleLike
 ```cpp
-#include <utempl/utils.hpp>
+import utempl;
 
 auto main() -> int {
   using namespace utempl;
@@ -18,9 +18,8 @@ auto main() -> int {
 ```
 ### Storage types in array 
 ```cpp
-#include <utempl/meta_info.hpp>
-#include <array>
-#include <type_traits>
+import utempl;
+import std;
 
 auto main() -> int {
   using namespace utempl;
