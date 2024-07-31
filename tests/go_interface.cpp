@@ -1,5 +1,7 @@
+module;
 #include <gtest/gtest.h>
-#include <utempl/go_interface.hpp>
+export module tests.go_interface;
+import utempl.go_interface;
 
 namespace utempl {
 
@@ -30,5 +32,4 @@ TEST(GoInterface, Equal) {
   EXPECT_NE(obj, SomeStruct{1});
   EXPECT_EQ(obj, SomeStruct2{1});
 };
-} // namespace utempl
-
+}  // namespace utempl

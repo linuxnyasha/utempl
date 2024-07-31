@@ -1,9 +1,9 @@
-#pragma once
-#include <optional>
+export module utempl.optional;
+import std;
 
 namespace utempl {
 
-template <typename T>
+export template <typename T>
 struct Optional {  // NOLINT
   bool flag = false;
   union {

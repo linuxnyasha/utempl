@@ -1,13 +1,14 @@
-#pragma once
-#include <fmt/compile.h>
-#include <fmt/format.h>
+module;
+#include <cstdio>
+export module utempl.menu;
 
-#include <array>
-#include <iostream>
-#include <utempl/constexpr_string.hpp>
-#include <utempl/optional.hpp>
-#include <utempl/tuple.hpp>
-#include <utempl/utils.hpp>
+import fmt;
+import std;
+import utempl.string;
+import utempl.optional;
+import utempl.tuple;
+import utempl.utils;
+import utempl.type_list;
 
 namespace utempl {
 
@@ -46,8 +47,6 @@ constexpr auto GetMax(Range&& range) {
 
 namespace menu {
 
-namespace impl {
-
 template <std::size_t N1, std::size_t N2>
 struct CallbackMessage {
   ConstexprString<N1> message;
@@ -62,17 +61,24 @@ CallbackMessage(const char (&)[N1], const char (&)[N2]) -> CallbackMessage<N2, N
 template <std::size_t N1>
 CallbackMessage(const char (&)[N1]) -> CallbackMessage<N1, 0>;  // NOLINT
 
-}  // namespace impl
-
-template <Tuple storage = Tuple{}, typename... Fs>
+export template <Tuple storage = Tuple{}, typename... Fs>
 struct Menu {
  private:
   template <ConstexprString fmt, ConstexprString message, ConstexprString alignment, ConstexprString neededInput>
   static consteval auto FormatMessage() {
+    constexpr auto fmtlib = GetFmtCompiledString<fmt>();
     // + 1 - NULL Terminator
-    constexpr auto size = fmt::formatted_size(FMT_COMPILE(fmt.data.begin()), neededInput, message, alignment) + 1;
+    constexpr auto size = fmt::formatted_size(fmtlib,
+                                              static_cast<std::string_view>(neededInput),
+                                              static_cast<std::string_view>(message),
+                                              static_cast<std::string_view>(alignment)) +
+                          1;
     std::array<char, size> data{};
-    fmt::format_to(data.begin(), FMT_COMPILE(fmt.data.begin()), neededInput, message, alignment);
+    fmt::format_to(data.begin(),
+                   fmtlib,
+                   static_cast<std::string_view>(neededInput),
+                   static_cast<std::string_view>(message),
+                   static_cast<std::string_view>(alignment));
     return ConstexprString<size>(data);
   };
   template <ConstexprString fmt, std::size_t I>
@@ -101,7 +107,7 @@ struct Menu {
                                     : CountDigits(Is))...});
     }(std::index_sequence_for<Fs...>());
   };
-  template <impl::CallbackMessage message, std::invocable F>
+  template <CallbackMessage message, std::invocable F>
   constexpr auto With(F&& f) const {
     return Menu<storage + Tuple{message}, Fs..., std::remove_cvref_t<F>>{.functionStorage =
                                                                              this->functionStorage + Tuple(std::forward<F>(f))};
@@ -120,7 +126,7 @@ struct Menu {
       std::string input;
       std::getline(in, input);
       (
-          [&]<auto I, impl::CallbackMessage message = Get<I>(storage)>(Wrapper<I>) {
+          [&]<auto I, CallbackMessage message = Get<I>(storage)>(Wrapper<I>) {
             if constexpr(message.need) {
               if(*message.need == input) {
                 Get<I>(this->functionStorage)();

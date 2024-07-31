@@ -1,11 +1,25 @@
-#pragma once
-#include <utempl/overloaded.hpp>
-#include <utempl/type_list.hpp>
+export module utempl.tuple;
+
+import utempl.type_list;
+import utempl.overloaded;
+import std;
+
 namespace utempl {
 
-template <auto>
-struct Wrapper;
-namespace impl {
+export template <auto Value>
+struct Wrapper {
+  static constexpr auto kValue = Value;
+  static constexpr auto value = Value;
+  inline constexpr auto operator==(auto&& arg) const {
+    return arg == Value;
+  };
+  consteval operator decltype(Value)() const {  // NOLINT
+    return Value;
+  };
+  consteval auto operator*() const {
+    return Value;
+  };
+};
 
 template <auto, typename T>
 struct TupleLeaf {
@@ -17,60 +31,58 @@ template <typename, typename...>
 struct TupleHelper;
 
 template <std::size_t... Is, typename... Ts>
-struct TupleHelper<std::index_sequence<Is...>, Ts...> : public impl::TupleLeaf<Is, Ts>... {
+struct TupleHelper<std::index_sequence<Is...>, Ts...> : public TupleLeaf<Is, Ts>... {
   constexpr auto operator==(const TupleHelper&) const -> bool = default;
 };
 
-}  // namespace impl
-
-template <typename... Ts>
+export template <typename... Ts>
 struct Tuple;
 
-template <std::size_t I, typename... Ts>
+export template <std::size_t I, typename... Ts>
 constexpr auto Get(Tuple<Ts...>& tuple) -> auto&
   requires(I < sizeof...(Ts))
 {
   using Type = decltype(Get<I>(TypeList<Ts...>{}));
-  return static_cast<impl::TupleLeaf<I, Type>&>(tuple).value;
+  return static_cast<TupleLeaf<I, Type>&>(tuple).value;
 };
 
-template <std::size_t I, typename... Ts>
+export template <std::size_t I, typename... Ts>
 constexpr auto Get(const Tuple<Ts...>& tuple) -> const auto&
   requires(I < sizeof...(Ts))
 {
   using Type = decltype(Get<I>(TypeList<Ts...>{}));
-  return static_cast<const impl::TupleLeaf<I, Type>&>(tuple).value;
+  return static_cast<const TupleLeaf<I, Type>&>(tuple).value;
 };
 
-template <std::size_t I, typename... Ts>
+export template <std::size_t I, typename... Ts>
 constexpr auto Get(Tuple<Ts...>&& tuple) -> decltype(auto)
   requires(I < sizeof...(Ts))
 {
   using Type = decltype(Get<I>(TypeList<Ts...>{}));
-  return std::move(static_cast<impl::TupleLeaf<I, Type>&&>(tuple).value);
+  return std::move(static_cast<TupleLeaf<I, Type>&&>(tuple).value);
 };
 
-template <std::size_t I, typename T>
+export template <std::size_t I, typename T>
 constexpr auto Get(T&& arg) -> decltype(get<I>(std::forward<T>(arg))) {
   return get<I>(std::forward<T>(arg));
 };
 
-template <typename... Ts>
-struct Tuple : impl::TupleHelper<std::index_sequence_for<Ts...>, Ts...> {
+export template <typename... Ts>
+struct Tuple : TupleHelper<std::index_sequence_for<Ts...>, Ts...> {
   template <typename... TTs>
-  constexpr Tuple(TTs&&... args) /* NOLINT */ : impl::TupleHelper<std::index_sequence_for<Ts...>, Ts...>{{std::forward<TTs>(args)}...} {};
+  constexpr Tuple(TTs&&... args) /* NOLINT */ : TupleHelper<std::index_sequence_for<Ts...>, Ts...>{{std::forward<TTs>(args)}...} {};
   template <std::invocable... Fs>
   constexpr Tuple(Fs&&... fs)  // NOLINT
     requires(!std::invocable<Ts> || ...)
-      : impl::TupleHelper<std::index_sequence_for<Ts...>, Ts...>{{fs()}...} {};
-  constexpr Tuple(Ts&&... args) : impl::TupleHelper<std::index_sequence_for<Ts...>, Ts...>{{args}...} {};  // NOLINT
+      : TupleHelper<std::index_sequence_for<Ts...>, Ts...>{{fs()}...} {};
+  constexpr Tuple(Ts&&... args) : TupleHelper<std::index_sequence_for<Ts...>, Ts...>{{args}...} {};  // NOLINT
   constexpr Tuple(const Tuple&) = default;
   constexpr Tuple(Tuple&&) = default;
   constexpr Tuple(Tuple&) = default;
   constexpr auto operator=(const Tuple&) -> Tuple& = default;
   constexpr auto operator=(Tuple&&) -> Tuple& = default;
   constexpr auto operator=(Tuple&) -> Tuple& = default;
-  constexpr Tuple() : impl::TupleHelper<std::index_sequence_for<Ts...>, Ts...>() {};
+  constexpr Tuple() : TupleHelper<std::index_sequence_for<Ts...>, Ts...>() {};
   constexpr auto operator==(const Tuple<Ts...>& other) const -> bool {
     return [&]<std::size_t... Is>(std::index_sequence<Is...>) {
       return ((Get<Is>(*this) == Get<Is>(other)) && ...);
@@ -94,7 +106,7 @@ struct Tuple : impl::TupleHelper<std::index_sequence_for<Ts...>, Ts...> {
   };
 };
 
-template <>
+export template <>
 struct Tuple<> {
   template <typename... Ts>
   constexpr auto operator+(const Tuple<Ts...>& other) const -> Tuple<Ts...> {
@@ -104,10 +116,10 @@ struct Tuple<> {
     return true;
   };
 };
-template <typename... Ts>
+export template <typename... Ts>
 Tuple(Ts&&...) -> Tuple<std::decay_t<Ts>...>;
 
-template <typename... Ts>
+export template <typename... Ts>
 consteval auto ListFromTuple(Tuple<Ts...>) -> TypeList<Ts...> {
   return {};
 };

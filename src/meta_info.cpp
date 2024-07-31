@@ -1,18 +1,16 @@
-#pragma once
-#include <utempl/loopholes/counter.hpp>
-#include <utempl/type_list.hpp>
+export module utempl.meta_info;
+import utempl.loopholes;
+import utempl.type_list;
+import std;
 
 namespace utempl {
 
-namespace impl {
+export struct Types {};
 
-struct Types {};
-}  // namespace impl
-
-template <std::size_t Id, typename Tag>
+export template <std::size_t Id, typename Tag>
 struct MetaInfoKey {};
 
-template <typename T, typename Tag = impl::Types>
+export template <typename T, typename Tag = Types>
 struct MetaInfo {
   static constexpr std::size_t kTypeId = loopholes::Counter<Tag, T>();
   using Type = T;
@@ -21,26 +19,24 @@ struct MetaInfo {
   static constexpr auto _ = loopholes::Injector<MetaInfoKey<kTypeId, Tag>{}, TypeList<T>{}>{};
 };
 
-template <typename T, typename Tag = impl::Types>
+export template <typename T, typename Tag = Types>
 inline constexpr std::size_t kTypeId = MetaInfo<T, Tag>::kTypeId;
 
-template <typename Tag,
-          typename T,
-          typename... Ts,
-          typename... TTs,
-          std::size_t Id = loopholes::Counter<Tag, T, Ts..., TTs...>(),
-          auto = loopholes::Injector<MetaInfoKey<Id, Tag>{}, TypeList<T>{}>{}>
+export template <typename Tag,
+                 typename T,
+                 typename... Ts,
+                 typename... TTs,
+                 std::size_t Id = loopholes::Counter<Tag, T, Ts..., TTs...>(),
+                 auto = loopholes::Injector<MetaInfoKey<Id, Tag>{}, TypeList<T>{}>{}>
 consteval auto AddTypeToTag(TTs&&...) -> std::size_t {
   return Id;
 };
 
-template <std::size_t Id, typename Tag = impl::Types>
+export template <std::size_t Id, typename Tag = Types>
 using GetMetaInfo = MetaInfo<typename decltype(Magic(loopholes::Getter<MetaInfoKey<Id, Tag>{}>{}))::Type>;
 
-template <std::size_t Id, typename Tag = impl::Types>
+export template <std::size_t Id, typename Tag = Types>
 using GetType = GetMetaInfo<Id, Tag>::Type;
-
-namespace impl {
 
 template <typename Tag, std::size_t I = 0, typename... Ts, typename G>
 static consteval auto GetTypeListForTag(G g)
@@ -59,14 +55,12 @@ static consteval auto GetTypeListForTag(G g)
   };
 };
 
-}  // namespace impl
-
-template <typename Tag = impl::Types, typename... Ts>
+export template <typename Tag = Types, typename... Ts>
 consteval auto GetTypeListForTag() {
-  return impl::GetTypeListForTag<Tag>(TypeList<Ts...>{});
+  return GetTypeListForTag<Tag>(TypeList<Ts...>{});
 };
 
-template <typename Tag, typename... Ts, auto I = utempl::loopholes::CountValue<Tag, Ts...>() - 1>
+export template <typename Tag, typename... Ts, auto I = utempl::loopholes::CountValue<Tag, Ts...>() - 1>
 consteval auto GetCurrentTagType() {
   return Magic(utempl::loopholes::Getter<MetaInfoKey<I, Tag>{}>());
 };
@@ -74,7 +68,7 @@ consteval auto GetCurrentTagType() {
 /*
 static_assert(kTypeId<int> == 0);
 static_assert(kTypeId<void> == 1);
-static_assert(AddTypeToTag<impl::Types, void, int>() == 2);
+static_assert(AddTypeToTag<Types, void, int>() == 2);
 static_assert(std::is_same_v<decltype(GetTypeListForTag()), TypeList<int, void, void>>);
 
 */

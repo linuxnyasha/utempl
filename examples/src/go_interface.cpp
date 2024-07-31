@@ -1,5 +1,6 @@
-#include <utempl/go_interface.hpp>
-#include <fmt/core.h>
+import fmt;
+import utempl.go_interface;
+import std;
 
 struct SomeInterfaceImpl {
   int a;
@@ -7,15 +8,14 @@ struct SomeInterfaceImpl {
 };
 using SomeInterface = utempl::GoInterface<SomeInterfaceImpl>;
 struct SomeStruct {
-  short a;
-  short b;
+  std::int16_t a;
+  std::int16_t b;
 };
 
 inline auto Func(SomeInterface arg) {
   fmt::print("{} {}\n", arg.a, arg.b);
 };
 
-
 auto main() -> int {
-  Func(SomeStruct{42, 300});
+  Func(SomeStruct{42, 300});  // NOLINT
 };

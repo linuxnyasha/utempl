@@ -1,4 +1,6 @@
-#include <utempl/utils.hpp>
+import utempl.utils;
+import utempl.tuple;
+import std;
 
 auto main() -> int {
   static_assert(utempl::Switch<int>(utempl::Tuple{2, 1, 0}, utempl::Tuple{0, 1, 2}, 0, [](int value) {

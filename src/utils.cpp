@@ -1,56 +1,38 @@
-#pragma once
-#include <fmt/format.h>
+export module utempl.utils;
 
-#include <optional>
-#include <ranges>
-#include <utempl/constexpr_string.hpp>
-#include <utempl/overloaded.hpp>
-#include <utempl/tuple.hpp>
+import std;
+import fmt;
+import utempl.string;
+import utempl.tuple;
+import utempl.type_list;
+import utempl.overloaded;
 
 namespace utempl {
 
 template <typename T>
 using ForwardType = decltype(std::forward<T>(std::declval<T>()));
 
-template <auto Value>
-struct Wrapper {
-  static constexpr auto kValue = Value;
-  inline constexpr auto operator==(auto&& arg) const {
-    return arg == Value;
-  };
-  consteval operator decltype(Value)() const {  // NOLINT
-    return Value;
-  };
-  consteval auto operator*() const {
-    return Value;
-  };
-};
+export template <auto Value>
+constexpr Wrapper<Value> kWrapper;
 
-template <auto Value>
-inline constexpr Wrapper<Value> kWrapper;
-
-template <typename T>
+export template <typename T>
   requires std::same_as<T, void> || requires { T{}; }
 constexpr auto kDefaultCreator = [] {
   return T{};
 };
 
-template <>
+export template <>
 constexpr auto kDefaultCreator<void> = [] {};
 
-namespace impl {
-
 template <std::size_t N>
-struct kSeq {
+struct kSeqType {
   template <typename F>
-  friend constexpr auto operator|(F&& f, const kSeq<N>&) -> decltype(auto) {
+  friend constexpr auto operator|(F&& f, const kSeqType<N>&) -> decltype(auto) {
     return [&]<std::size_t... Is>(std::index_sequence<Is...>) -> decltype(auto) {
       return std::forward<F>(f)(kWrapper<Is>...);
     }(std::make_index_sequence<N>());
   };
 };
-
-}  // namespace impl
 
 template <typename From, typename To>
 concept ImplicitConvertibleTo = std::same_as<From, To> || requires(From from) { [](To) {}(from); };
@@ -65,8 +47,8 @@ concept Function = []<typename R, typename... Ts>(TypeList<R(Ts...)>) {
 
 static_assert(Function<decltype([]() {}), void()>);
 
-template <std::size_t N>
-inline constexpr impl::kSeq<N> kSeq;
+export template <std::size_t N>
+constexpr kSeqType<N> kSeq;
 
 template <ConstexprString string, typename T = std::size_t>
 consteval auto ParseNumber() -> T {
@@ -80,15 +62,15 @@ consteval auto ParseNumber() -> T {
 };
 namespace literals {
 
-template <char... cs>
+export template <char... cs>
 consteval auto operator"" _c() {
   return Wrapper<ParseNumber<ConstexprString<sizeof...(cs)>({cs...})>()>{};
 };
 
 }  // namespace literals
 
-template <std::size_t I, typename... Ts>
-inline constexpr auto Arg(Ts&&... args) -> decltype(auto)
+export template <std::size_t I, typename... Ts>
+constexpr auto Arg(Ts&&... args) -> decltype(auto)
   requires(I < sizeof...(Ts))
 {
   return [&]<auto... Is>(std::index_sequence<Is...>) -> decltype(auto) {
@@ -98,55 +80,55 @@ inline constexpr auto Arg(Ts&&... args) -> decltype(auto)
   }(std::make_index_sequence<I>());
 };
 
-template <std::size_t Count>
-inline constexpr auto Times(auto&& f) {
+export template <std::size_t Count>
+constexpr auto Times(auto&& f) {
   [&]<auto... Is>(std::index_sequence<Is...>) {
     (Arg<0>(f, Is)(), ...);
   }(std::make_index_sequence<Count>());
 };
 
-template <typename T>
-inline constexpr std::size_t kTupleSize = []() -> std::size_t {
+export template <typename T>
+constexpr std::size_t kTupleSize = []() -> std::size_t {
   static_assert(!sizeof(T), "Not Found");
   return 0;
 }();
 
-template <typename T>
-inline constexpr std::size_t kTupleSize<T&&> = kTupleSize<std::remove_reference_t<T>>;
+export template <typename T>
+constexpr std::size_t kTupleSize<T&&> = kTupleSize<std::remove_reference_t<T>>;
 
-template <typename T>
-inline constexpr std::size_t kTupleSize<T&> = kTupleSize<std::remove_reference_t<T>>;
+export template <typename T>
+constexpr std::size_t kTupleSize<T&> = kTupleSize<std::remove_reference_t<T>>;
 
-template <typename T>
-inline constexpr std::size_t kTupleSize<const T> = kTupleSize<std::remove_cv_t<T>>;
+export template <typename T>
+constexpr std::size_t kTupleSize<const T> = kTupleSize<std::remove_cv_t<T>>;
 
-template <template <typename...> typename M, typename... Ts>
-inline constexpr std::size_t kTupleSize<M<Ts...>> = sizeof...(Ts);
+export template <template <typename...> typename M, typename... Ts>
+constexpr std::size_t kTupleSize<M<Ts...>> = sizeof...(Ts);
 
-template <template <typename, std::size_t> typename Array, typename T, std::size_t N>
-inline constexpr std::size_t kTupleSize<Array<T, N>> = N;
+export template <template <typename, std::size_t> typename Array, typename T, std::size_t N>
+constexpr std::size_t kTupleSize<Array<T, N>> = N;
 
-template <typename T>
+export template <typename T>
 struct TupleMaker {};
 
-template <typename... Ts>
+export template <typename... Ts>
 struct TupleMaker<std::tuple<Ts...>> {
   template <typename... Args>
-  static inline constexpr auto Make(Args&&... args) {
+  static constexpr auto Make(Args&&... args) {
     return std::tuple{std::forward<Args>(args)...};
   };
 };
-template <typename... Ts>
+export template <typename... Ts>
 struct TupleMaker<Tuple<Ts...>> {
   template <typename... Args>
-  static inline constexpr auto Make(Args&&... args) {
+  static constexpr auto Make(Args&&... args) {
     return Tuple{std::forward<Args>(args)...};
   };
 };
-template <typename T, std::size_t N>
+export template <typename T, std::size_t N>
 struct TupleMaker<std::array<T, N>> {
   template <typename Arg, typename... Args>
-  static inline constexpr auto Make(Arg&& arg, Args&&... args)
+  static constexpr auto Make(Arg&& arg, Args&&... args)
     requires(std::same_as<std::remove_cvref_t<Arg>, std::remove_cvref_t<Args>> && ...)
   {
     return std::array{std::forward<Arg>(arg), std::forward<Args>(args)...};
@@ -156,39 +138,37 @@ struct TupleMaker<std::array<T, N>> {
   };
 };
 
-template <typename T>
+export template <typename T>
 struct TupleTieMaker {};
 
-template <typename... Ts>
+export template <typename... Ts>
 struct TupleTieMaker<std::tuple<Ts...>> {
   template <typename... Args>
-  static inline constexpr auto Make(Args&... args) -> std::tuple<Args...> {
+  static constexpr auto Make(Args&... args) -> std::tuple<Args...> {
     return {args...};
   };
 };
 
-template <typename... Ts>
+export template <typename... Ts>
 struct TupleTieMaker<Tuple<Ts...>> {
   template <typename... Args>
-  static inline constexpr auto Make(Args&... args) -> Tuple<Args...> {
+  static constexpr auto Make(Args&... args) -> Tuple<Args...> {
     return {args...};
   };
 };
 
-template <typename T = Tuple<>, typename... Args>
-inline constexpr auto MakeTuple(Args&&... args) -> decltype(TupleMaker<std::remove_cvref_t<T>>::Make(std::forward<Args>(args)...)) {
+export template <typename T = Tuple<>, typename... Args>
+constexpr auto MakeTuple(Args&&... args) -> decltype(TupleMaker<std::remove_cvref_t<T>>::Make(std::forward<Args>(args)...)) {
   return TupleMaker<std::remove_cvref_t<T>>::Make(std::forward<Args>(args)...);
 };
 
-template <typename T = Tuple<>, typename... Args>
-inline constexpr auto MakeTie(Args&... args) -> decltype(TupleTieMaker<std::remove_cvref_t<T>>::Make(args...)) {
+export template <typename T = Tuple<>, typename... Args>
+constexpr auto MakeTie(Args&... args) -> decltype(TupleTieMaker<std::remove_cvref_t<T>>::Make(args...)) {
   return TupleTieMaker<std::remove_cvref_t<T>>::Make(args...);
 };
 
 template <typename T>
 concept HasMakeTie = requires(int& arg) { MakeTie<T>(arg); };
-
-namespace impl {
 
 template <typename T>
 struct Getter {
@@ -215,7 +195,7 @@ consteval auto TrueF(auto&&...) {
 };
 
 template <typename T>
-inline constexpr const SafeTupleChecker<T> kSafeTupleChecker;
+constexpr const SafeTupleChecker<T> kSafeTupleChecker;
 
 template <typename T, bool = false>
 struct IsSafeTuple {
@@ -230,19 +210,17 @@ struct IsSafeTuple<
   static constexpr bool value = false;
 };
 
-}  // namespace impl
+export template <typename T>
+constexpr bool kForceEnableTuple = false;
 
-template <typename T>
-inline constexpr bool kForceEnableTuple = false;
+export template <typename T, std::size_t N>
+constexpr bool kForceEnableTuple<std::array<T, N>> = true;
 
-template <typename T, std::size_t N>
-inline constexpr bool kForceEnableTuple<std::array<T, N>> = true;
-
-template <typename T>
+export template <typename T>
 concept TupleLike = kForceEnableTuple<std::remove_cvref_t<T>> ||
-                    (requires { Get<0>(MakeTuple<T>(42)); } && impl::IsSafeTuple<std::remove_cvref_t<T>>::value);  // NOLINT
+                    (requires { Get<0>(MakeTuple<T>(42)); } && IsSafeTuple<std::remove_cvref_t<T>>::value);  // NOLINT
 
-template <typename F, typename Tuple>
+export template <typename F, typename Tuple>
 concept TupleTransformer = requires(F f, Tuple&& tuple) {
   { f(std::move(tuple)) };
 };
@@ -252,58 +230,58 @@ struct LazyTuple {
   F f;
   using ResultType = std::invoke_result_t<F>;
   std::optional<ResultType> result{std::nullopt};
-  inline constexpr auto Evaluate() {
+  constexpr auto Evaluate() {
     if(!this->result) {
       this->result.emplace(this->f());
     };
   };
-  inline constexpr auto operator()() -> decltype(auto) {
+  constexpr auto operator()() -> decltype(auto) {
     this->Evaluate();
     return *this->result;
   };
-  inline constexpr auto operator()() const -> decltype(auto) {
+  constexpr auto operator()() const -> decltype(auto) {
     return this->f();
   };
   template <typename T>
-  inline constexpr auto operator==(T&& other)
+  constexpr auto operator==(T&& other)
     requires requires(ResultType result) { result == std::forward<T>(other); }
   {
     return (*this)() == other;
   };
 
   template <typename T>
-  inline constexpr auto operator==(T&& other) const
+  constexpr auto operator==(T&& other) const
     requires requires(ResultType result) { result == std::forward<T>(other); }
   {
     return (*this)() == other;
   };
 
-  inline constexpr operator std::invoke_result_t<F>() {  // NOLINT
+  constexpr operator std::invoke_result_t<F>() {  // NOLINT
     return (*this)();
   };
-  inline constexpr operator std::invoke_result_t<F>() const {  // NOLINT
+  constexpr operator std::invoke_result_t<F>() const {  // NOLINT
     return (*this)();
   };
   template <std::size_t I>
-  friend inline constexpr auto Get(LazyTuple&& tuple) -> decltype(auto)
+  friend constexpr auto Get(LazyTuple&& tuple) -> decltype(auto)
     requires TupleLike<ResultType>
   {
     return Get<I>(std::move(tuple)());
   };
   template <std::size_t I>
-  friend inline constexpr auto Get(const LazyTuple&& tuple) -> decltype(auto)
+  friend constexpr auto Get(const LazyTuple&& tuple) -> decltype(auto)
     requires TupleLike<ResultType>
   {
     return Get<I>(std::move(tuple)());
   };
   template <std::size_t I>
-  friend inline constexpr auto Get(LazyTuple& tuple) -> decltype(auto)
+  friend constexpr auto Get(LazyTuple& tuple) -> decltype(auto)
     requires TupleLike<ResultType>
   {
     return Get<I>(tuple());
   };
   template <std::size_t I>
-  friend inline constexpr auto Get(const LazyTuple& tuple) -> decltype(auto)
+  friend constexpr auto Get(const LazyTuple& tuple) -> decltype(auto)
     requires TupleLike<ResultType>
   {
     return Get<I>(tuple());
@@ -319,21 +297,19 @@ struct LazyTuple {
 template <std::invocable F>
 struct TupleMaker<LazyTuple<F>> {
   template <typename... Ts>
-  static inline constexpr auto Make(Ts&&... args)
+  static constexpr auto Make(Ts&&... args)
     requires requires { TupleMaker<typename LazyTuple<F>::ResultType>::Make(std::forward<Ts>(args)...); }
   {
     return TupleMaker<typename LazyTuple<F>::ResultType>::Make(std::forward<Ts>(args)...);
   };
 };
 
-template <TupleLike Tuple, TupleTransformer<Tuple> FF>
-inline constexpr auto operator|(Tuple&& tuple, FF&& f) {
+export template <TupleLike Tuple, TupleTransformer<Tuple> FF>
+constexpr auto operator|(Tuple&& tuple, FF&& f) {
   return LazyTuple{[tuple = std::forward<Tuple>(tuple), f = std::forward<FF>(f)]() -> decltype(auto) {
     return f(std::move(tuple));
   }};
 };
-
-namespace impl {
 
 template <typename F, typename Tuple>
 concept UnpackConcept = []<std::size_t... Is>(std::index_sequence<Is...>) {
@@ -355,32 +331,30 @@ concept ForEachConcept = []<std::size_t... Is>(std::index_sequence<Is...>) {
   return (std::invocable<F, decltype(Get<Is>(std::declval<Tuple>()))> && ...);
 }(std::make_index_sequence<kTupleSize<Tuple>>());
 
-}  // namespace impl
-
-template <TupleLike Tuple, impl::UnpackConcept<Tuple> F>
-inline constexpr auto Unpack(Tuple&& tuple, F&& f) -> decltype(auto) {
+export template <TupleLike Tuple, UnpackConcept<Tuple> F>
+constexpr auto Unpack(Tuple&& tuple, F&& f) -> decltype(auto) {
   return [&](auto... is) -> decltype(auto) {
     return f(Get<is>(std::forward<Tuple>(tuple))...);
   } | kSeq<kTupleSize<Tuple>>;
 };
 
-template <typename F>
+export template <typename F>
 constexpr auto Unpack(F&& f) {
   return [f = std::forward<F>(f)]<TupleLike Tuple>(Tuple&& tuple) -> decltype(auto)
-           requires impl::UnpackConcept<F, Tuple>
+           requires UnpackConcept<F, Tuple>
   {
     return Unpack(std::forward<Tuple>(tuple), std::move(f));
   };
 };
 
-template <TupleLike Tuple, TupleLike R = Tuple, impl::TransformConcept<Tuple> F>
+export template <TupleLike Tuple, TupleLike R = Tuple, TransformConcept<Tuple> F>
 constexpr auto Transform(Tuple&& container, F&& f, TypeList<R> = {}) {
   return Unpack(std::forward<Tuple>(container), [&]<typename... Ts>(Ts&&... args) {
     return MakeTuple<R>(f(std::forward<Ts>(args))...);
   });
 };
 
-template <typename F, typename R = void>
+export template <typename F, typename R = void>
 constexpr auto Transform(F&& f, TypeList<R> result = {}) {
   return [f = std::forward<F>(f), result]<TupleLike TTuple, typename RR = decltype([] {
                                                               if constexpr(std::same_as<R, void>) {
@@ -389,23 +363,23 @@ constexpr auto Transform(F&& f, TypeList<R> result = {}) {
                                                                 return kType<R>;
                                                               };
                                                             }())::Type>(TTuple&& tuple)
-    requires impl::TransformConcept<F, TTuple>
+    requires TransformConcept<F, TTuple>
   {
     return Transform(std::forward<TTuple>(tuple), std::move(f), kType<RR>);
   };
 };
 
-template <TupleLike Tuple, TupleLike R = Tuple, impl::TransformConcept<Tuple> F>
+export template <TupleLike Tuple, TupleLike R = Tuple, TransformConcept<Tuple> F>
 constexpr auto Map(Tuple&& tuple, F&& f, TypeList<R> result = {}) {
   return Transform(std::forward<Tuple>(tuple), std::forward<F>(f), result);
 };
 
-template <typename F, typename R = void>
+export template <typename F, typename R = void>
 constexpr auto Map(F&& f, TypeList<R> result = {}) -> decltype(Transform(std::forward<F>(f), result)) {
   return Transform(std::forward<F>(f), result);
 };
 
-template <auto Tuple, TupleLike To = decltype(Tuple)>
+export template <auto Tuple, TupleLike To = decltype(Tuple)>
 consteval auto PackConstexprWrapper()
   requires TupleLike<decltype(Tuple)>
 {
@@ -414,35 +388,33 @@ consteval auto PackConstexprWrapper()
   }(std::make_index_sequence<kTupleSize<decltype(Tuple)>>());
 };
 
-template <TupleLike Tuple>
+export template <TupleLike Tuple>
 constexpr auto Reverse(Tuple&& tuple) {
   return [&]<std::size_t... Is>(std::index_sequence<Is...>) {
     return MakeTuple<Tuple>(Get<kTupleSize<Tuple> - Is - 1>(std::forward<Tuple>(tuple))...);
   }(std::make_index_sequence<kTupleSize<Tuple>>());
 };
 
-consteval auto Reverse() {
+export consteval auto Reverse() {
   return []<TupleLike Tuple>(Tuple&& tuple) {
     return Reverse(std::forward<Tuple>(tuple));
   };
 };
 
-namespace impl {
-
 template <typename...>
-struct LeftFold;
+struct LeftFoldHelper;
 
 template <typename T>
-struct LeftFold<T> {
+struct LeftFoldHelper<T> {
   T data;
 };
 
 template <typename T, typename F>
-struct LeftFold<T, F> {
+struct LeftFoldHelper<T, F> {
   T data;
   F f;
   template <typename TT>
-  constexpr auto operator|(LeftFold<TT>&& other) -> LeftFold<std::invoke_result_t<F, T, TT>, F> {
+  constexpr auto operator|(LeftFoldHelper<TT>&& other) -> LeftFoldHelper<std::invoke_result_t<F, T, TT>, F> {
     return {.data = std::forward<F>(this->f)(std::forward<T>(this->data), std::forward<TT>(other.data)), .f = std::forward<F>(this->f)};
   };
 };
@@ -471,40 +443,38 @@ concept LeftFoldConcept = decltype(Unpack(std::declval<Tuple>(), []<typename... 
   return kWrapper<decltype((LeftFoldIsOk<F, T>{} | ... | LeftFoldIsOk<F, Ts>{}))::value>;
 }))::kValue;
 
-}  // namespace impl
-
-template <TupleLike Tuple, std::move_constructible T, impl::LeftFoldConcept<T, Tuple> F = decltype(kDefaultCreator<void>)&>
+export template <TupleLike Tuple, std::move_constructible T, LeftFoldConcept<T, Tuple> F = decltype(kDefaultCreator<void>)&>
 constexpr auto LeftFold(Tuple&& tuple, T&& init, F&& f = kDefaultCreator<void>) -> decltype(auto) {
   return Unpack(std::forward<Tuple>(tuple), [&]<typename... Ts>(Ts&&... args) -> decltype(auto) {
-    return (impl::LeftFold<ForwardType<T>, ForwardType<F>>{.data = std::forward<T>(init), .f = std::forward<F>(f)} | ... |
-            impl::LeftFold<ForwardType<Ts>>{.data = std::forward<Ts>(args)})
+    return (LeftFoldHelper<ForwardType<T>, ForwardType<F>>{.data = std::forward<T>(init), .f = std::forward<F>(f)} | ... |
+            LeftFoldHelper<ForwardType<Ts>>{.data = std::forward<Ts>(args)})
         .data;
   });
 };
 
-template <TupleLike Tuple, std::move_constructible T, impl::LeftFoldConcept<T, Tuple> F>
+export template <TupleLike Tuple, std::move_constructible T, LeftFoldConcept<T, Tuple> F>
 constexpr auto Reduce(Tuple&& tuple, T&& init, F&& f) -> decltype(auto) {
   return LeftFold(std::forward<Tuple>(tuple), std::forward<T>(init), std::forward<F>(f));
 };
 
-template <typename T, typename F>
+export template <typename T, typename F>
 constexpr auto Reduce(T&& init, F&& f) -> decltype(auto) {
   return [init = std::forward<T>(init), f = std::forward<F>(f)]<TupleLike Tuple>(Tuple&& tuple) -> decltype(auto)
-           requires impl::LeftFoldConcept<F, T, Tuple>
+           requires LeftFoldConcept<F, T, Tuple>
   {
     return Reduce(std::forward<Tuple>(tuple), std::move(init), std::move(f));
   };
 };
 
-template <TupleLike Tuple, TupleLike Tuple2>
-inline constexpr auto TupleCat(Tuple&& tuple, Tuple2&& tuple2) {
+export template <TupleLike Tuple, TupleLike Tuple2>
+constexpr auto TupleCat(Tuple&& tuple, Tuple2&& tuple2) {
   return [&]<auto... Is, auto... IIs>(std::index_sequence<Is...>, std::index_sequence<IIs...>) {
     return MakeTuple<Tuple>(Get<Is>(std::forward<Tuple>(tuple))..., Get<IIs>(std::forward<Tuple2>(tuple2))...);
   }(std::make_index_sequence<kTupleSize<Tuple>>(), std::make_index_sequence<kTupleSize<Tuple2>>());
 };
 
-template <TupleLike... Tuples>
-inline constexpr auto TupleCat(Tuples&&... tuples)
+export template <TupleLike... Tuples>
+constexpr auto TupleCat(Tuples&&... tuples)
   requires(sizeof...(tuples) >= 1)
 {
   return LeftFold(Tuple{std::forward<Tuples>(tuples)...},
@@ -514,18 +484,18 @@ inline constexpr auto TupleCat(Tuples&&... tuples)
                   });
 };
 
-template <TupleLike... Tuples, typename F>
-inline constexpr auto Unpack(Tuples&&... tuples, F&& f) -> decltype(Unpack(TupleCat(std::forward<Tuples>(tuples)...), std::forward<F>(f))) {
+export template <TupleLike... Tuples, typename F>
+constexpr auto Unpack(Tuples&&... tuples, F&& f) -> decltype(Unpack(TupleCat(std::forward<Tuples>(tuples)...), std::forward<F>(f))) {
   return Unpack(TupleCat(std::forward<Tuples>(tuples)...), std::forward<F>(f));
 };
 
-template <typename... Ts>
-inline constexpr auto Tie(Ts&... args) -> Tuple<Ts&...> {
+export template <typename... Ts>
+constexpr auto Tie(Ts&... args) -> Tuple<Ts&...> {
   return {args...};
 };
 
 template <template <typename...> typename F, TupleLike Tuple>
-inline constexpr bool kEveryElement = [](auto... is) {
+constexpr bool kEveryElement = [](auto... is) {
   return (F<std::decay_t<decltype(Get<is>(std::declval<Tuple>()))>>::value && ...);
 } | kSeq<kTupleSize<Tuple>>;
 
@@ -541,8 +511,8 @@ consteval auto PartialCallerF(TypeList<Ts...>) {
   };
 };
 
-template <TupleLike Tuple, std::move_constructible T>
-inline constexpr auto FirstOf(Tuple&& tuple, T&& init)
+export template <TupleLike Tuple, std::move_constructible T>
+constexpr auto FirstOf(Tuple&& tuple, T&& init)
   requires kEveryElement<std::is_invocable, Tuple>
 {
   return LeftFold(std::forward<Tuple>(tuple), std::forward<T>(init), []<typename TT, typename F>(TT&& value, F&& f) -> TT {
@@ -553,23 +523,19 @@ inline constexpr auto FirstOf(Tuple&& tuple, T&& init)
   });
 };
 
-template <typename T>
-inline constexpr auto FirstOf(T&& init) {
+export template <typename T>
+constexpr auto FirstOf(T&& init) {
   return [init = std::forward<T>(init)]<TupleLike Tuple>(Tuple&& tuple) {
     return FirstOf(std::forward<Tuple>(tuple), std::move(init));
   };
 };
-
-namespace impl {
 
 template <typename F, typename Tuple>
 concept FilterConcept = decltype(Unpack(std::declval<Tuple>(), []<typename... Ts>(Ts&&...) {
   return kWrapper<(Function<F, bool(Ts)> && ...)>;
 }))::kValue;
 
-}  // namespace impl
-
-template <TupleLike Tuple, impl::FilterConcept<Tuple> F>
+export template <TupleLike Tuple, FilterConcept<Tuple> F>
 constexpr auto Filter(Tuple&& tuple, F&& f) {
   return LeftFold(
       std::forward<Tuple>(tuple), MakeTuple<Tuple>(), [&]<TupleLike Accumulator, typename T>(Accumulator&& accumulator, T&& add) {
@@ -581,16 +547,16 @@ constexpr auto Filter(Tuple&& tuple, F&& f) {
       });
 };
 
-template <typename F>
+export template <typename F>
 constexpr auto Filter(F&& f) {
   return [f = std::forward<F>(f)]<TupleLike Tuple>(Tuple&& tuple)
-    requires impl::FilterConcept<F, Tuple>
+    requires FilterConcept<F, Tuple>
   {
     return Filter(std::forward<Tuple>(tuple), std::move(f));
   };
 };
 
-template <TupleLike Tuple, impl::ForEachConcept<Tuple> F>
+export template <TupleLike Tuple, ForEachConcept<Tuple> F>
 constexpr auto ForEach(Tuple&& tuple, F&& f) {
   Unpack(std::forward<Tuple>(tuple), [&]<typename... Ts>(Ts&&... args) {
     (f(std::forward<Ts>(args)), ...);
@@ -601,23 +567,23 @@ template <typename F, typename... Ts>
 struct Curryer {
   F f;
   Tuple<Ts...> data;
-  inline constexpr operator std::invoke_result_t<F, Ts...>() const {  // NOLINT
+  constexpr operator std::invoke_result_t<F, Ts...>() const {  // NOLINT
     return [&]<auto... Is>(std::index_sequence<Is...>) {
       return this->f(Get<Is>(this->data)...);
     }(std::index_sequence_for<Ts...>());
   };
   template <typename T>
-  inline constexpr auto operator()(T&& arg) const -> Curryer<F, Ts..., std::remove_cvref_t<T>> {
+  constexpr auto operator()(T&& arg) const -> Curryer<F, Ts..., std::remove_cvref_t<T>> {
     return {.f = this->f, .data = this->data + Tuple{std::forward<T>(arg)}};
   };
 };
-template <typename F>
-inline constexpr auto Curry(F&& f) -> Curryer<std::remove_cvref_t<F>> {
+export template <typename F>
+constexpr auto Curry(F&& f) -> Curryer<std::remove_cvref_t<F>> {
   return {.f = std::forward<F>(f), .data = Tuple{}};
 };
 
-template <TupleLike Tuple, typename T>
-inline constexpr auto Find(Tuple&& tuple, T&& find) -> std::size_t {
+export template <TupleLike Tuple, typename T>
+constexpr auto Find(Tuple&& tuple, T&& find) -> std::size_t {
   return Unpack(std::forward<Tuple>(tuple), [&]<typename... Ts>(Ts&&... args) {
     using Type = std::remove_cvref_t<T>;
     std::array<bool, kTupleSize<Tuple>> bs{Overloaded(
@@ -640,8 +606,8 @@ inline constexpr auto Find(Tuple&& tuple, T&& find) -> std::size_t {
   });
 };
 
-template <std::size_t N, TupleLike Tuple>
-inline constexpr auto Take(Tuple&& tuple) {
+export template <std::size_t N, TupleLike Tuple>
+constexpr auto Take(Tuple&& tuple) {
   if constexpr(std::is_lvalue_reference_v<Tuple> && HasMakeTie<Tuple>) {
     return [&]<std::size_t... Is>(std::index_sequence<Is...>) {
       return MakeTie<Tuple>(Get<Is>(std::forward<Tuple>(tuple))...);
@@ -653,22 +619,22 @@ inline constexpr auto Take(Tuple&& tuple) {
   };
 };
 
-template <std::size_t N>
+export template <std::size_t N>
 consteval auto Take() {
   return [&]<TupleLike Tuple>(Tuple&& tuple) {
     return Take<N>(std::forward<Tuple>(tuple));
   };
 };
 
-template <TupleLike Tuple, std::move_constructible T>
-inline constexpr auto operator<<(Tuple&& tuple, T&& t) {
+export template <TupleLike Tuple, std::move_constructible T>
+constexpr auto operator<<(Tuple&& tuple, T&& t) {
   return Unpack(std::forward<Tuple>(tuple), [&]<typename... Ts>(Ts&&... args) {
     return MakeTuple<Tuple>(std::forward<Ts>(args)..., std::forward<T>(t));
   });
 };
 
-template <std::size_t N, TupleLike Tuple = Tuple<>, typename T>
-inline constexpr auto Generate(T&& value)
+export template <std::size_t N, TupleLike Tuple = Tuple<>, typename T>
+constexpr auto Generate(T&& value)
   requires(std::copyable<T> || N == 1 && std::move_constructible<T>)
 {
   if constexpr(N == 1) {
@@ -680,7 +646,7 @@ inline constexpr auto Generate(T&& value)
   };
 };
 
-template <TupleLike Tuple>
+export template <TupleLike Tuple>
 constexpr auto Enumerate(Tuple&& tuple) {
   return Unpack(std::forward<Tuple>(tuple), [](auto&&... vs) {
     return [&](auto... is) {
@@ -688,8 +654,6 @@ constexpr auto Enumerate(Tuple&& tuple) {
     } | kSeq<sizeof...(vs)>;
   });
 };
-
-namespace impl {
 
 template <typename Key, typename KeysTuple>
 concept ComparableSwitchConcept = decltype(Unpack(std::declval<KeysTuple>(), []<typename... Ts>(Ts&&... args) {
@@ -701,15 +665,13 @@ concept CallableSwitchConcept = std::same_as<R, void> || decltype(Unpack(std::de
                                   return kWrapper<(Function<F, std::optional<R>(Ts)> && ...)>;
                                 }))::kValue;
 
-}  // namespace impl
-
-template <typename R = void,
-          TupleLike KeysTuple,
-          TupleLike ValuesTuple,
-          impl::ComparableSwitchConcept<KeysTuple> Key,
-          impl::CallableSwitchConcept<ValuesTuple, R> F,
-          Function<R()> Default = decltype(kDefaultCreator<R>)>
-constexpr auto Switch(KeysTuple&& keysTuple, ValuesTuple&& valuesTuple, Key&& key, F&& f, Default&& def = {}) -> R
+export template <typename R = void,
+                 TupleLike KeysTuple,
+                 TupleLike ValuesTuple,
+                 ComparableSwitchConcept<KeysTuple> Key,
+                 CallableSwitchConcept<ValuesTuple, R> F,
+                 Function<R()> Default = std::add_lvalue_reference_t<decltype(kDefaultCreator<R>)>>
+constexpr auto Switch(KeysTuple&& keysTuple, ValuesTuple&& valuesTuple, Key&& key, F&& f, Default&& def = kDefaultCreator<R>) -> R
   requires(std::move_constructible<R> || std::same_as<R, void>) && (kTupleSize<KeysTuple> == kTupleSize<ValuesTuple>)
 {
   return Unpack(std::forward<KeysTuple>(keysTuple), [&]<typename... Keys>(Keys&&... keys) {
@@ -740,14 +702,14 @@ constexpr auto Switch(KeysTuple&& keysTuple, ValuesTuple&& valuesTuple, Key&& ke
   });
 };
 
-template <std::size_t N, typename R = Tuple<>>
+export template <std::size_t N, typename R = Tuple<>>
 consteval auto GetIndexesTuple() {
   return [](auto... is) {
     return MakeTuple<R>(*is...);
   } | kSeq<N>;
 };
 
-template <typename R = Tuple<>, typename... Ts>
+export template <typename R = Tuple<>, typename... Ts>
 consteval auto GetTuple(TypeList<Ts...>, TypeList<R> = {}) {
   return MakeTuple<R>(kType<Ts>...);
 };

@@ -1,19 +1,16 @@
-#pragma once
-#include <cstddef>
-#include <tuple>
-#include <utempl/loopholes/core.hpp>
+export module utempl.loopholes.counter;
+export import utempl.loopholes.core;
+import std;
 
 namespace utempl::loopholes {
-
-namespace impl {
 
 template <typename Tag, std::size_t Value>
 struct TagWithValue {};
 
 template <bool Add, typename Tag, std::size_t I, typename... Ts>
-consteval auto Counter() -> std::size_t {
+consteval auto CounterHelper() -> std::size_t {
   if constexpr(requires { Magic(Getter<TagWithValue<Tag, I>{}>{}); }) {
-    return Counter<Add, Tag, I + 1, Ts...>();
+    return CounterHelper<Add, Tag, I + 1, Ts...>();
   };
   if constexpr(Add) {
     return (std::ignore = Injector<TagWithValue<Tag, I>{}, 0>{}, I);
@@ -22,16 +19,14 @@ consteval auto Counter() -> std::size_t {
   };
 };
 
-}  // namespace impl
-
 // For incerement counter need a unique Ts...
-template <typename Tag, typename... Ts, std::size_t R = impl::Counter<true, Tag, 0, Ts...>()>
+export template <typename Tag, typename... Ts, std::size_t R = CounterHelper<true, Tag, 0, Ts...>()>
 consteval auto Counter(auto...) -> std::size_t {
   return R;
 };
 
 // Without increment
-template <typename Tag, typename... Ts, std::size_t R = impl::Counter<false, Tag, 0, Ts...>()>
+export template <typename Tag, typename... Ts, std::size_t R = CounterHelper<false, Tag, 0, Ts...>()>
 consteval auto CountValue(auto...) -> std::size_t {
   return R;
 };

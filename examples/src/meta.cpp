@@ -1,6 +1,5 @@
-#include <utempl/meta_info.hpp>
-#include <array>
-#include <type_traits>
+import utempl.meta_info;
+import std;
 
 auto main() -> int {
   constexpr std::array types = {utempl::kTypeId<int>, utempl::kTypeId<void>};

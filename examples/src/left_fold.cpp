@@ -1,4 +1,6 @@
-#include <utempl/utils.hpp>
+import utempl.utils;
+import utempl.tuple;
+import std;
 
 auto main() -> int {
   constexpr auto value = utempl::LeftFold(

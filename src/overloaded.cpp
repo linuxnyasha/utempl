@@ -1,8 +1,8 @@
-#pragma once
-#include <utility>
+export module utempl.overloaded;
+import std;
 
 namespace utempl {
-template <typename... Fs>
+export template <typename... Fs>
 constexpr auto Overloaded(Fs&&... fs) {
   struct Overloaded : public std::remove_cvref_t<Fs>... {
     using Fs::operator()...;

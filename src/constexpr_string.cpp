@@ -1,28 +1,31 @@
-#pragma once
-#include <fmt/format.h>
-
-#include <algorithm>
+module;
+#include <fmt/compile.h>
+export module utempl.string;
+import std;
+// import fmt;
 
 namespace utempl {
-template <std::size_t>
+export template <std::size_t>
 struct ConstexprString;
 }  // namespace utempl
 
-template <std::size_t Size>
-struct fmt::formatter<utempl::ConstexprString<Size>> : public fmt::formatter<std::string_view> {
-  constexpr auto parse(format_parse_context& ctx) const {
-    return ctx.begin();
-  };
-  constexpr auto format(const utempl::ConstexprString<Size>& str, auto& ctx) const {
-    return fmt::formatter<std::string_view>::format({str.begin()}, ctx);
+export {
+  template <std::size_t Size>
+  struct fmt::formatter<utempl::ConstexprString<Size>> : public fmt::formatter<std::string_view> {
+    constexpr auto parse(format_parse_context& ctx) const {
+      return ctx.begin();
+    };
+    constexpr auto format(const utempl::ConstexprString<Size>& str, auto& ctx) const {
+      return fmt::formatter<std::string_view>::format({str.begin()}, ctx);
+    };
   };
 };
-
-namespace utempl {
+export namespace utempl {
 
 template <std::size_t Size>
 struct ConstexprString {
   std::array<char, Size> data;
+  using char_type = char;
   constexpr auto begin() -> char* {
     return this->data.begin();
   };
@@ -72,6 +75,11 @@ struct ConstexprString {
   };
   constexpr ConstexprString(const ConstexprString&) = default;
   constexpr ConstexprString(ConstexprString&&) = default;
+};
+
+template <ConstexprString Str>
+consteval auto GetFmtCompiledString() {
+  return FMT_COMPILE(Str.data.begin());
 };
 
 template <std::size_t N>
