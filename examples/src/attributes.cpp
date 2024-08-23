@@ -1,6 +1,5 @@
 import std;
-import utempl.attributes;
-import utempl.type_list;
+import utempl;
 #include <utempl/macro.hpp>
 
 template <typename T>

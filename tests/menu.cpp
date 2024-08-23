@@ -1,7 +1,7 @@
 module;
 #include <gtest/gtest.h>
 export module tests.menu;
-import utempl.menu;
+import utempl;
 
 namespace utempl {
 

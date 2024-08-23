@@ -1,4 +1,4 @@
-import utempl.menu;
+import utempl;
 import std;
 
 auto main() -> int {

@@ -1,4 +1,4 @@
-import utempl.meta_info;
+import utempl;
 import std;
 
 auto main() -> int {

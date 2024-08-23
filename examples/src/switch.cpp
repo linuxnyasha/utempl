@@ -1,5 +1,4 @@
-import utempl.utils;
-import utempl.tuple;
+import utempl;
 import std;
 
 auto main() -> int {

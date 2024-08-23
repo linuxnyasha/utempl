@@ -1,5 +1,5 @@
 import fmt;
-import utempl.go_interface;
+import utempl;
 import std;
 
 struct SomeInterfaceImpl {

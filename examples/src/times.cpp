@@ -1,4 +1,4 @@
-import utempl.utils;
+import utempl;
 import std;
 
 auto main() -> int {

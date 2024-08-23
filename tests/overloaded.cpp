@@ -1,7 +1,7 @@
 module;
 #include <gtest/gtest.h>
 export module tests.overloaded;
-import utempl.overloaded;
+import utempl;
 
 namespace utempl {
 

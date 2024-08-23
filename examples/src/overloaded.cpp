@@ -1,4 +1,4 @@
-import utempl.overloaded;
+import utempl;
 import std;
 
 auto main() -> int {
