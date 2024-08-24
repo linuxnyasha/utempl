@@ -48,7 +48,6 @@ CPMAddPackage(
   URL
   "https://github.com/linuxnyasha/fmt_import/archive/refs/heads/linuxnyasha-patch-1.zip"
   # Fixes for fmt module and constexpr fmt::formatted_size
-  OPTIONS "CMAKE_CXX_FLAGS -DFMT_ATTACH_TO_GLOBAL_MODULE"
 )
 
 set(CPM_USE_LOCAL_PACKAGES ${TMP})
@@ -98,7 +97,6 @@ endif()
 if(BUILD_STATIC_LIBS)
   add_library(utempl_static)
   if(NOT BUILD_SHARED_LIBS)
-    add_library(utempl ALIAS utempl_static)
     add_library(utempl::utempl ALIAS utempl_static)
   endif()
   configure(utempl_static)
