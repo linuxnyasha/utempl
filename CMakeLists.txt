@@ -16,8 +16,6 @@ set(FMT_MODULE ON)
 set(BOOST_INCLUDE_LIBRARIES "pfr")
 
 option(CPM_USE_LOCAL_PACKAGES "Use local packages" ON)
-option(BUILD_SHARED_LIBS "Build shared libraries (.so)" ON)
-option(BUILD_STATIC_LIBS "Build static libraries (.a)" OFF)
 file(GLOB_RECURSE SOURCES "src/*.cpp")
 
 set_target_properties(__cmake_cxx23 PROPERTIES CXX_EXTENSIONS OFF)
@@ -52,55 +50,46 @@ CPMAddPackage(
 
 set(CPM_USE_LOCAL_PACKAGES ${TMP})
 
-function(configure target)
-  target_compile_features(${target} INTERFACE cxx_std_23)
-
-  target_include_directories(${target} INTERFACE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-            $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>)
-
-  target_sources(${target} PUBLIC FILE_SET ${target} TYPE CXX_MODULES
-    FILES ${SOURCES})
-
-
-
-  install(TARGETS ${target}
-    EXPORT utemplTargets
-      ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
-      LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-      RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
-      FILE_SET ${target} DESTINATION ${CMAKE_INSTALL_LIBDIR}
-  )
-
-
-  if(TARGET Boost::pfr)
-    target_link_libraries(${target} PUBLIC fmt::fmt
-      Boost::pfr)
-  else()
-    find_package(Boost 1.85.0 REQUIRED)
-    target_link_libraries(${target} PUBLIC fmt::fmt
-      ${Boost_LIBRARIES})
-  endif()
-endfunction(configure)
-
 
 
 cmake_policy(SET CMP0079 NEW)
 
 include(GNUInstallDirs)
 
-if(BUILD_SHARED_LIBS)
-  add_library(utempl_shared)
-  add_library(utempl::utempl ALIAS utempl_shared)
-  configure(utempl_shared)
+
+
+
+add_library(utempl)
+add_library(utempl::utempl ALIAS utempl)
+target_compile_features(utempl INTERFACE cxx_std_23)
+
+target_include_directories(utempl INTERFACE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+        $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>)
+
+target_sources(utempl PUBLIC FILE_SET utemplModules TYPE CXX_MODULES
+  FILES ${SOURCES})
+
+
+
+install(TARGETS utempl
+  EXPORT utemplTargets
+    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+    FILE_SET utemplModules DESTINATION ${CMAKE_INSTALL_LIBDIR}
+)
+
+
+if(TARGET Boost::pfr)
+  target_link_libraries(utempl PUBLIC fmt::fmt
+    Boost::pfr)
+else()
+  find_package(Boost 1.85.0 REQUIRED)
+  target_link_libraries(utempl PUBLIC fmt::fmt
+    ${Boost_LIBRARIES})
 endif()
 
-if(BUILD_STATIC_LIBS)
-  add_library(utempl_static)
-  if(NOT BUILD_SHARED_LIBS)
-    add_library(utempl::utempl ALIAS utempl_static)
-  endif()
-  configure(utempl_static)
-endif()
+
 
 
 
