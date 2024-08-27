@@ -35,25 +35,12 @@ export struct NoInfo {
   consteval auto operator==(const NoInfo&) const -> bool = default;
 };
 
-template <typename... Ts>
-struct FieldAttributeData {
-  using Type = TypeList<Ts...>;
-};
-
-template <>
-struct FieldAttributeData<> {
-  using Type = NoInfo;
-};
-
-template <typename T,
-          typename... Ts,
-          auto f = [] {},
-          typename Current = decltype(GetCurrentTagType<impl::AttributesTag, decltype(f)>())::Type,
-          auto = AddTypeToTag<impl::AttributesCounterTag<Current>, typename FieldAttributeData<Ts...>::Type, decltype(f)>()>
-consteval auto FieldAttributeHelper() -> T;
-
-export template <typename... Ts>
-using FieldAttribute = decltype(FieldAttributeHelper<Ts...>());
+export template <typename T,
+                 typename O = TypeList<>,
+                 auto f = [] {},
+                 typename Current = decltype(GetCurrentTagType<impl::AttributesTag, decltype(f)>())::Type,
+                 auto = AddTypeToTag<impl::AttributesCounterTag<Current>, O, decltype(f)>()>
+using FieldAttribute = T;
 
 export template <typename T, auto f = [] {}, bool R = (loopholes::CountValue<impl::AttributesCounterTag<T>, decltype(f)>() > 0)>
 concept HasAttributes = R;
@@ -74,9 +61,10 @@ consteval auto GetAttributes()
 export template <typename T>
 consteval auto GetAttributes() {
   constexpr auto I = loopholes::CountValue<impl::AttributesCounterTag<T>>();
-  return [](auto... is) {
-    return utempl::Tuple{typename decltype(Magic(loopholes::Getter<MetaInfoKey<is, impl::AttributesCounterTag<T>>{}>{}))::Type{}...};
-  } | kSeq<I>;
+  return
+      [](auto... is) -> Tuple<typename decltype(Magic(loopholes::Getter<MetaInfoKey<*is, impl::AttributesCounterTag<T>>{}>{}))::Type...> {
+        return {};
+      } | kSeq<I>;
 };
 
 }  // namespace utempl

@@ -26,12 +26,13 @@ static_assert(utempl::GetAttributes<SomeStruct>() ==
 
 struct SomeOtherStruct {
   static_assert(utempl::OpenStruct<SomeOtherStruct>());
-  utempl::FieldAttribute<int, int> field1;
+  utempl::FieldAttribute<int, utempl::TypeList<int>> field1;
   utempl::FieldAttribute<int> field2;
-  utempl::FieldAttribute<std::string, void> field3;
+  utempl::FieldAttribute<std::string, utempl::TypeList<void>> field3;
   static_assert(utempl::CloseStruct());
 };
 
-static_assert(utempl::GetAttributes<SomeOtherStruct>() == utempl::Tuple{utempl::kTypeList<int>, utempl::NoInfo{}, utempl::kTypeList<void>});
+static_assert(utempl::GetAttributes<SomeOtherStruct>() ==
+              utempl::Tuple{utempl::kTypeList<int>, utempl::kTypeList<>, utempl::kTypeList<void>});
 
 auto main() -> int {};
