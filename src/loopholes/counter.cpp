@@ -8,11 +8,10 @@ export module utempl.loopholes.counter;
 export import utempl.loopholes.core;
 import std;
 
-
 #else
 
+#include <tuple>
 #include <utempl/loopholes/core.hpp>
-#include <utility>
 
 #endif
 
@@ -34,13 +33,13 @@ consteval auto CounterHelper() -> std::size_t {
 };
 
 // For incerement counter need a unique Ts...
-export template <typename Tag, typename... Ts, std::size_t R = CounterHelper<true, Tag, 0, Ts...>()>
+UTEMPL_EXPORT template <typename Tag, typename... Ts, std::size_t R = CounterHelper<true, Tag, 0, Ts...>()>
 consteval auto Counter(auto...) -> std::size_t {
   return R;
 };
 
 // Without increment
-export template <typename Tag, typename... Ts, std::size_t R = CounterHelper<false, Tag, 0, Ts...>()>
+UTEMPL_EXPORT template <typename Tag, typename... Ts, std::size_t R = CounterHelper<false, Tag, 0, Ts...>()>
 consteval auto CountValue(auto...) -> std::size_t {
   return R;
 };

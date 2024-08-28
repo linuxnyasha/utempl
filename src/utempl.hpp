@@ -1,4 +1,5 @@
 #pragma once
+
 #ifdef UTEMPL_MODULE
 import utempl;
 #else

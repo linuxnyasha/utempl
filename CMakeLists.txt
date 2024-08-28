@@ -10,17 +10,14 @@ project(utempl
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
-set(CMAKE_CXX_MODULE_STD 1)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(BOOST_INCLUDE_LIBRARIES "pfr")
 
 option(CPM_USE_LOCAL_PACKAGES "Use local packages" ON)
 option(UTEMPL_MODULE OFF)
 
-if(UTEMPL_MODULE)
-  add_compile_definitions(UTEMPL_EXPORT=export)
-elseif()
-  add_compile_definitions(UTEMPL_EXPORT="")
+if(UTEMPL_MODULE OR ENABLE_EXAMPLES OR ENABLE_TESTS)
+  set(CMAKE_CXX_MODULE_STD 1)
 endif()
 
 file(GLOB_RECURSE SOURCES "src/*.cpp")
@@ -87,10 +84,20 @@ if(UTEMPL_MODULE)
   set(EXISTING_HEADERS)
 
   foreach(HPP_FILE ${HEADER_SOURCES})
-    get_filename_component(FILE_NAME ${HPP_FILE} NAME_WE) 
+    get_filename_component(REL_PATH ${HPP_FILE} DIRECTORY)
+    string(REPLACE "${CMAKE_CURRENT_SOURCE_DIR}/src" "" REL_PATH ${REL_PATH})
+    get_filename_component(FILE_NAME ${HPP_FILE} NAME_WE)
+    set(FILE_NAME "${REL_PATH}/${FILE_NAME}")
     set(HEADER_FILE "_headers/utempl/${FILE_NAME}.hpp")
     file(READ ${HPP_FILE} FILE_CONTENT)
-    file(WRITE ${HEADER_FILE} "${FILE_CONTENT}")
+    if(EXISTS ${HEADER_FILE}) 
+      file(READ ${HEADER_FILE} HEADER_CONTENT)
+      if(NOT FILE_CONTENT STREQUAL HEADER_CONTENT)
+        file(WRITE ${HEADER_FILE} "${FILE_CONTENT}")
+      endif()
+    else()
+      file(WRITE ${HEADER_FILE} "${FILE_CONTENT}")
+    endif()
     list(APPEND EXISTING_HEADERS "${HEADER_FILE}")
   endforeach()
   file(GLOB HEADER_FILES "_headers/*.hpp")
@@ -107,15 +114,29 @@ if(UTEMPL_MODULE)
     target_link_libraries(utempl PUBLIC fmt::fmt
       ${Boost_LIBRARIES})
   endif()
+  target_include_directories(utempl PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/_headers>
+    $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>)
+
 else()
   add_library(utempl INTERFACE)
   file(GLOB_RECURSE HEADER_SOURCES "src/*.hpp")
   set(EXISTING_HEADERS)
   foreach(CPP_FILE ${SOURCES} ${HEADER_SOURCES})
-    get_filename_component(FILE_NAME ${CPP_FILE} NAME_WE) 
+    get_filename_component(REL_PATH ${CPP_FILE} DIRECTORY)
+    string(REPLACE "${CMAKE_CURRENT_SOURCE_DIR}/src" "" REL_PATH ${REL_PATH})
+    get_filename_component(FILE_NAME ${CPP_FILE} NAME_WE)
+    set(FILE_NAME "${REL_PATH}/${FILE_NAME}")
     set(HEADER_FILE "_headers/utempl/${FILE_NAME}.hpp")
     file(READ ${CPP_FILE} FILE_CONTENT)
-    file(WRITE ${HEADER_FILE} "${FILE_CONTENT}")
+    if(EXISTS ${HEADER_FILE}) 
+      file(READ ${HEADER_FILE} HEADER_CONTENT)
+      if(NOT FILE_CONTENT STREQUAL HEADER_CONTENT)
+        file(WRITE ${HEADER_FILE} "${FILE_CONTENT}")
+      endif()
+    else()
+      file(WRITE ${HEADER_FILE} "${FILE_CONTENT}")
+    endif()
     list(APPEND EXISTING_HEADERS "${HEADER_FILE}")
 
   endforeach()
@@ -133,14 +154,14 @@ else()
     target_link_libraries(utempl INTERFACE fmt::fmt
       ${Boost_LIBRARIES})
   endif()
+  target_include_directories(utempl INTERFACE
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/_headers>
+    $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>)
 endif()
-
 add_library(utempl::utempl ALIAS utempl)
 target_compile_features(utempl INTERFACE cxx_std_23)
 
-target_include_directories(utempl INTERFACE
-    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/_headers>
-    $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>)
+
 
 
 
@@ -177,12 +198,15 @@ install(FILES "${PROJECT_BINARY_DIR}/utemplConfig.cmake"
               "${PROJECT_BINARY_DIR}/utemplConfigVersion.cmake"
         DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/utempl/cmake)
 
-install(DIRECTORY ${PROJECT_SOURCE_DIR}/headers/utempl DESTINATION include)
+install(DIRECTORY ${PROJECT_SOURCE_DIR}/_headers/utempl DESTINATION include)
 
 
 
 if(ENABLE_TESTS) 
-  find_package(GTest REQUIRED)
+  CPMAddPackage(
+    NAME GTest
+    URL https://github.com/google/googletest/archive/03597a01ee50ed33e9dfd640b249b4be3799d395.zip
+  )
   enable_testing()
   file(GLOB SOURCES tests/* tests/*/* tests/*/*/*)
   add_executable(utempl_tests)
