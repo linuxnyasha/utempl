@@ -1,4 +1,5 @@
 #pragma once
+#include <utempl/module.hpp>
 #ifdef UTEMPL_MODULE
 export module utempl.meta_info;
 import utempl.loopholes;
@@ -6,7 +7,6 @@ import utempl.type_list;
 import std;
 #else
 #include <utempl/loopholes/counter.hpp>
-#include <utempl/module.hpp>
 #include <utempl/type_list.hpp>
 #endif
 
