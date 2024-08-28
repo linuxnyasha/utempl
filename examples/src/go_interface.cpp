@@ -1,5 +1,4 @@
-import fmt;
-import utempl;
+#include <utempl/utempl.hpp>
 import std;
 
 struct SomeInterfaceImpl {
@@ -13,7 +12,7 @@ struct SomeStruct {
 };
 
 inline auto Func(SomeInterface arg) {
-  fmt::print("{} {}\n", arg.a, arg.b);
+  std::println("{} {}\n", arg.a, arg.b);
 };
 
 auto main() -> int {

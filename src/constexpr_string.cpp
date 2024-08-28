@@ -1,9 +1,16 @@
+#pragma once
+#include <utempl/module.hpp>
+#ifdef UTEMPL_MODULE
 export module utempl.string;
 import std;
-// import fmt;
+#else
+#include <algorithm>
+#include <string>
+#endif
 
-export namespace utempl {
+UTEMPL_EXPORT_BEGIN
 
+namespace utempl {
 template <std::size_t Size>
 struct ConstexprString {
   std::array<char, Size> data;
@@ -78,3 +85,5 @@ constexpr auto CreateStringWith(char c) {
 template <std::size_t Size>
 ConstexprString(const char (&data)[Size]) -> ConstexprString<Size>;  // NOLINT
 }  // namespace utempl
+
+UTEMPL_EXPORT_END

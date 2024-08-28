@@ -1,12 +1,21 @@
+#pragma once
+
+#include <utempl/module.hpp>
+#ifdef UTEMPL_MODULE
+
 export module utempl.tuple;
 
 import utempl.type_list;
 import utempl.overloaded;
 import std;
+#else
+#include <utempl/type_list.hpp>
+#include <utility>
+#endif
 
 namespace utempl {
 
-export template <auto Value>
+UTEMPL_EXPORT template <auto Value>
 struct Wrapper {
   static constexpr auto kValue = Value;
   static constexpr auto value = Value;
@@ -35,10 +44,10 @@ struct TupleHelper<std::index_sequence<Is...>, Ts...> : public TupleLeaf<Is, Ts>
   constexpr auto operator==(const TupleHelper&) const -> bool = default;
 };
 
-export template <typename... Ts>
+UTEMPL_EXPORT template <typename... Ts>
 struct Tuple;
 
-export template <std::size_t I, typename... Ts>
+UTEMPL_EXPORT template <std::size_t I, typename... Ts>
 constexpr auto Get(Tuple<Ts...>& tuple) -> auto&
   requires(I < sizeof...(Ts))
 {
@@ -46,7 +55,7 @@ constexpr auto Get(Tuple<Ts...>& tuple) -> auto&
   return static_cast<TupleLeaf<I, Type>&>(tuple).value;
 };
 
-export template <std::size_t I, typename... Ts>
+UTEMPL_EXPORT template <std::size_t I, typename... Ts>
 constexpr auto Get(const Tuple<Ts...>& tuple) -> const auto&
   requires(I < sizeof...(Ts))
 {
@@ -54,7 +63,7 @@ constexpr auto Get(const Tuple<Ts...>& tuple) -> const auto&
   return static_cast<const TupleLeaf<I, Type>&>(tuple).value;
 };
 
-export template <std::size_t I, typename... Ts>
+UTEMPL_EXPORT template <std::size_t I, typename... Ts>
 constexpr auto Get(Tuple<Ts...>&& tuple) -> decltype(auto)
   requires(I < sizeof...(Ts))
 {
@@ -62,12 +71,12 @@ constexpr auto Get(Tuple<Ts...>&& tuple) -> decltype(auto)
   return std::move(static_cast<TupleLeaf<I, Type>&&>(tuple).value);
 };
 
-export template <std::size_t I, typename T>
+UTEMPL_EXPORT template <std::size_t I, typename T>
 constexpr auto Get(T&& arg) -> decltype(get<I>(std::forward<T>(arg))) {
   return get<I>(std::forward<T>(arg));
 };
 
-export template <typename... Ts>
+UTEMPL_EXPORT template <typename... Ts>
 struct Tuple : TupleHelper<std::index_sequence_for<Ts...>, Ts...> {
   template <typename... TTs>
   constexpr Tuple(TTs&&... args) /* NOLINT */ : TupleHelper<std::index_sequence_for<Ts...>, Ts...>{{std::forward<TTs>(args)}...} {};
@@ -106,7 +115,7 @@ struct Tuple : TupleHelper<std::index_sequence_for<Ts...>, Ts...> {
   };
 };
 
-export template <>
+UTEMPL_EXPORT template <>
 struct Tuple<> {
   template <typename... Ts>
   constexpr auto operator+(const Tuple<Ts...>& other) const -> Tuple<Ts...> {
@@ -116,10 +125,10 @@ struct Tuple<> {
     return true;
   };
 };
-export template <typename... Ts>
+UTEMPL_EXPORT template <typename... Ts>
 Tuple(Ts&&...) -> Tuple<std::decay_t<Ts>...>;
 
-export template <typename... Ts>
+UTEMPL_EXPORT template <typename... Ts>
 consteval auto ListFromTuple(Tuple<Ts...>) -> TypeList<Ts...> {
   return {};
 };

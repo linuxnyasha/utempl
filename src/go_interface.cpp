@@ -1,8 +1,20 @@
+#pragma once
+#include <utempl/module.hpp>
+
+#ifdef UTEMPL_MODULE
+
 module;
 #include <boost/pfr.hpp>
 export module utempl.go_interface;
 import std;
 import utempl.string;
+
+#else
+
+#include <boost/pfr.hpp>
+#include <utempl/constexpr_string.hpp>
+
+#endif
 
 namespace utempl {
 
@@ -40,7 +52,7 @@ constexpr auto Transform(Transformer&& transformer, From&& from) {
   }(std::make_index_sequence<boost::pfr::tuple_size_v<To>>());
 };
 
-export struct DefaultFieldTransformer {
+UTEMPL_EXPORT struct DefaultFieldTransformer {
   constexpr auto operator()(auto&& arg) -> auto&& {
     return arg;
   };
@@ -53,7 +65,7 @@ export struct DefaultFieldTransformer {
   };
 };
 
-export template <typename Value, typename Transformer = DefaultFieldTransformer>
+UTEMPL_EXPORT template <typename Value, typename Transformer = DefaultFieldTransformer>
 struct GoInterface : Value {
   constexpr GoInterface(Value&& value) : Value(std::move(value)) {};  // NOLINT
   constexpr GoInterface(const Value& value) : Value(value) {};        // NOLINT

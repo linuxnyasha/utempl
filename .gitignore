@@ -20,5 +20,5 @@ utemplConfigVersion.cmake
 utempl_tests
 utempl_tests\[1\]_include.cmake
 utempl_tests\[1\]_tests.cmake
-libutempl_shared.so
-libutempl_static.so
+libutempl.a
+_headers

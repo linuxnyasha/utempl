@@ -1,4 +1,4 @@
-import utempl;
+#include <utempl/utempl.hpp>
 
 struct Container {
   float data{};

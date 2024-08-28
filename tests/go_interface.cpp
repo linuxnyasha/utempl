@@ -1,7 +1,6 @@
-module;
 #include <gtest/gtest.h>
-export module tests.go_interface;
-import utempl;
+
+#include <utempl/utempl.hpp>
 
 namespace utempl {
 

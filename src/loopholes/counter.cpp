@@ -1,6 +1,20 @@
+#pragma once
+
+#include <utempl/module.hpp>
+
+#ifdef UTEMPL_MODULE
+
 export module utempl.loopholes.counter;
 export import utempl.loopholes.core;
 import std;
+
+
+#else
+
+#include <utempl/loopholes/core.hpp>
+#include <utility>
+
+#endif
 
 namespace utempl::loopholes {
 

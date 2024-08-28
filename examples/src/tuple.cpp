@@ -1,5 +1,5 @@
 #include <cassert>
-import utempl;
+#include <utempl/utempl.hpp>
 import std;
 
 auto main() -> int {
