@@ -25,8 +25,9 @@ endif()
 
 file(GLOB_RECURSE SOURCES "src/*.cpp")
 
-set_target_properties(__cmake_cxx23 PROPERTIES CXX_EXTENSIONS OFF)
-
+if(TARGET __cmake_cxx23)
+  set_target_properties(__cmake_cxx23 PROPERTIES CXX_EXTENSIONS OFF)
+endif()
 
 file(
   DOWNLOAD
